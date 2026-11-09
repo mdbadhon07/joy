@@ -1,0 +1,6 @@
+{
+  "name": "Joy Kumar Store Admin - Debt & Sales Management",
+  "description": "Admin panel for Joy Kumar Store with customer debt history tracking, current debt ledger, manual price entry sales, and payment confirmation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

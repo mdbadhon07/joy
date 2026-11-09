@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#14532d">
+<title>জয় কুমার স্টোর</title>
+<style>
+:root{--green:#14532d;--light:#f3f7f3;--line:#dce6dd;--ink:#17251a;--muted:#607064}
+*{box-sizing:border-box}body{margin:0;background:var(--light);color:var(--ink);font-family:system-ui,"Noto Sans Bengali",sans-serif}
+header{background:linear-gradient(135deg,#14532d,#207348);color:white;padding:22px 16px;text-align:center}
+header h1{margin:0;font-size:25px}header p{margin:6px 0 0;color:#d9f4df;font-size:13px}
+main{max-width:1050px;margin:auto;padding:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.stat,.panel{background:white;border:1px solid var(--line);border-radius:14px;padding:14px}.stat small{color:var(--muted)}.stat strong{display:block;font-size:22px;margin-top:5px}
+nav{display:flex;gap:7px;overflow:auto;margin:12px 0}button,.tab{border:0;border-radius:10px;padding:11px 14px;background:#e2ece4;color:#17472b;font-weight:650;cursor:pointer;white-space:nowrap}
+.tab.active,button.primary{background:var(--green);color:white}.tabview{display:none}.tabview.active{display:block}
+h2{font-size:19px;margin:0 0 12px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+label{display:block;font-size:13px;color:var(--muted);margin:8px 0 4px}input,select{width:100%;padding:12px;border:1px solid #cbd8cd;border-radius:9px;font:inherit;background:white;color:var(--ink)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.muted{color:var(--muted);font-size:13px}.list{margin-top:12px}.item{padding:10px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}.item:last-child{border:0}.pill{font-size:12px;background:#fff1c9;color:#785500;padding:3px 8px;border-radius:20px}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{text-align:left;padding:9px 5px;border-bottom:1px solid var(--line)}
+.notice{background:#fff8df;border:1px solid #f0dfa2;padding:10px;border-radius:10px;font-size:13px;margin-top:12px}
+@media(max-width:650px){.stats{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}header h1{font-size:22px}main{padding:10px}}
+</style></head>
+<body>
+<header><h1>✦ জয় কুমার স্টোর ✦</h1><p>আপনার বিশ্বস্ত কেনাকাটার ঠিকানা</p><p>সততা • বিশ্বাস • সেবার অঙ্গীকার</p></header>
+<main>
+<div class="stats">
+ <div class="stat"><small>মোট বিক্রি</small><strong id="totalSales">৳০</strong></div>
+ <div class="stat"><small>মোট বাকি</small><strong id="totalDue">৳০</strong></div>
+ <div class="stat"><small>মোট পণ্য</small><strong id="productCount">০</strong></div>
+</div>
+<nav>
+<button class="tab active" data-tab="home">হোম</button><button class="tab" data-tab="customers">কাস্টমার</button><button class="tab" data-tab="products">পণ্য</button><button class="tab" data-tab="sales">বিক্রয়</button><button class="tab" data-tab="reports">রিপোর্ট</button>
+</nav>
+<section id="home" class="tabview active panel"><h2>দোকানের হিসাব</h2><p>জয় কুমার স্টোরে স্বাগতম। নিচের মেনু থেকে কাস্টমার, পণ্য ও বিক্রয় যোগ করুন।</p><div id="recent" class="list muted">এখনো কোনো বিক্রয় নেই।</div><div class="notice">এই সংস্করণে তথ্য এই ব্রাউজারের ডিভাইসেই সেভ থাকে। ফোন ও ল্যাপটপে একই ডেটা স্বয়ংক্রিয়ভাবে সিঙ্ক হয় না।</div></section>
+<section id="customers" class="tabview panel"><h2>কাস্টমার যোগ ও সার্চ</h2><div class="grid"><div><label>কাস্টমারের নাম</label><input id="cname" placeholder="নাম লিখুন"></div><div><label>মোবাইল নম্বর</label><input id="cphone" inputmode="tel" placeholder="01XXXXXXXXX"></div></div><div class="actions"><button class="primary" id="saveCustomer">কাস্টমার সেভ</button><button id="pickContact">ফোনের Contacts থেকে নিন</button></div><label>নাম বা নম্বর দিয়ে খুঁজুন</label><input id="customerSearch" placeholder="সার্চ করুন..."><div id="customerList" class="list"></div><p class="muted">Contacts বাটন Android/সমর্থিত ব্রাউজারে contact picker খুলতে পারে। সব ব্রাউজারে সমর্থিত নয়।</p></section>
+<section id="products" class="tabview panel"><h2>পণ্য যোগ</h2><div class="grid"><div><label>পণ্যের নাম</label><input id="pname" placeholder="যেমন: চাল"></div><div><label>ক্রয় মূল্য (প্রতি ইউনিট)</label><input id="pcost" type="number" min="0" placeholder="0"></div><div><label>বিক্রয় মূল্য (প্রতি ইউনিট)</label><input id="pprice" type="number" min="0" placeholder="0"></div><div><label>মজুত পরিমাণ</label><input id="pstock" type="number" min="0" placeholder="0"></div></div><div class="actions"><button class="primary" id="saveProduct">পণ্য সেভ</button></div><div id="productList" class="list"></div></section>
+<section id="sales" class="tabview panel"><h2>নতুন বিক্রয়</h2><label>কাস্টমার</label><input id="sCustomer" list="customerOptions" placeholder="নাম লিখুন"><datalist id="customerOptions"></datalist><label>পণ্য</label><select id="sProduct"><option value="">পণ্য নির্বাচন করুন</option></select><div class="grid"><div><label>পরিমাণ</label><input id="sQty" type="number" min="0.01" step="any" value="1"></div><div><label>জমা টাকা</label><input id="sPaid" type="number" min="0" value="0"></div></div><p id="salePreview" class="muted">পণ্য নির্বাচন করলে মোট টাকা দেখা যাবে।</p><div class="actions"><button class="primary" id="saveSale">বিক্রয় সেভ ও বিল তৈরি</button></div><div id="bill" class="notice" hidden></div></section>
+<section id="reports" class="tabview panel"><h2>বিক্রয় রিপোর্ট</h2><div id="reportTable" class="list"></div><div class="actions"><button id="exportData">ডেটা ব্যাকআপ ডাউনলোড</button><button id="importButton">ব্যাকআপ ফিরিয়ে আনুন</button><input id="importFile" type="file" accept="application/json" hidden></div><p class="muted">নিয়মিত ব্যাকআপ ডাউনলোড করে নিরাপদে রাখুন।</p></section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let data={customers:[],products:[],sales:[]};
+try{data=JSON.parse(localStorage.getItem('joyStoreData'))||data}catch(e){}
+const money=n=>'৳'+Number(n||0).toLocaleString('bn-BD',{maximumFractionDigits:2});
+const save=()=>{localStorage.setItem('joyStoreData',JSON.stringify(data));render()};
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.tabview').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.tab).classList.add('active')});
+$('saveCustomer').onclick=()=>{let name=$('cname').value.trim(),phone=$('cphone').value.trim();if(!name||!phone)return alert('নাম ও নম্বর দিন');let old=data.customers.find(c=>c.phone===phone);if(old)old.name=name;else data.customers.push({name,phone});$('cname').value='';$('cphone').value='';save()};
+$('customerSearch').oninput=renderCustomers;
+$('pickContact').onclick=async()=>{try{if(!('contacts' in navigator)||!navigator.contacts){alert('এই ব্রাউজারে Contacts Picker নেই। Android ফোনের Contacts বাটন বা native app লাগবে।');return}let c=await navigator.contacts.select(['name','tel'],{multiple:false});if(c[0]){$('cname').value=c[0].name?.[0]||'';$('cphone').value=c[0].tel?.[0]||''}}catch(e){alert('কন্টাক্ট নির্বাচন করা যায়নি।') }};
+$('saveProduct').onclick=()=>{let name=$('pname').value.trim(),cost=+$('pcost').value,price=+$('pprice').value,stock=+$('pstock').value;if(!name||!$('pcost').value||!$('pprice').value||!$('pstock').value||cost<0||price<0||stock<0)return alert('পণ্যের সব তথ্য ঠিকভাবে দিন');data.products.push({id:Date.now(),name,cost,price,stock});['pname','pcost','pprice','pstock'].forEach(x=>$(x).value='');save()};
+$('sProduct').onchange=updatePreview;$('sQty').oninput=updatePreview;$('sPaid').oninput=updatePreview;
+function updatePreview(){let p=data.products.find(x=>String(x.id)===$('sProduct').value),q=+$('sQty').value||0;if(p){let t=q*p.price;$('salePreview').textContent=`দর: ${money(p.price)} × ${q} = মোট ${money(t)} | মজুত ${p.stock}`}}
+$('saveSale').onclick=()=>{let customer=$('sCustomer').value.trim(),p=data.products.find(x=>String(x.id)===$('sProduct').value),qty=+$('sQty').value,paid=+$('sPaid').value;if(!customer||!p||qty<=0||paid<0)return alert('কাস্টমার, পণ্য, পরিমাণ ও জমা ঠিকভাবে দিন');if(qty>p.stock)return alert('পর্যাপ্ত পণ্য মজুত নেই');let total=qty*p.price,due=total-paid;if(due<0)return alert('জমা মোট টাকার বেশি হতে পারবে না');p.stock-=qty;let sale={id:Date.now(),customer,product:p.name,qty,total,paid,due,date:new Date().toLocaleString('bn-BD')};data.sales.unshift(sale);save();$('bill').hidden=false;$('bill').innerHTML=`<b>জয় কুমার স্টোর — বিক্রয় বিল</b><br>কাস্টমার: ${esc(customer)}<br>পণ্য: ${esc(p.name)} (${qty})<br>মোট: ${money(total)}<br>জমা: ${money(paid)}<br><b>বাকি: ${money(due)}</b><br><small>${esc(sale.date)}</small><div class="actions"><button onclick="shareBill(${sale.id},'sms')">SMS</button><button onclick="shareBill(${sale.id},'wa')">WhatsApp</button></div>`;$('sQty').value=1;$('sPaid').value=0;updatePreview()};
+window.shareBill=(id,kind)=>{let s=data.sales.find(x=>x.id===id),c=data.customers.find(x=>x.name===s.customer),msg=`জয় কুমার স্টোর\\nকাস্টমার: ${s.customer}\\nপণ্য: ${s.product}\\nমোট: ${money(s.total)}\\nজমা: ${money(s.paid)}\\nবাকি: ${money(s.due)}\\nধন্যবাদ!`;if(kind==='wa')location.href='https://wa.me/'+(c?.phone||'')+'?text='+encodeURIComponent(msg);else location.href='sms:'+(c?.phone||'')+'?body='+encodeURIComponent(msg)};
+function renderCustomers(){let q=$('customerSearch').value.toLowerCase();let a=data.customers.filter(c=>(c.name+c.phone).toLowerCase().includes(q));$('customerList').innerHTML=a.length?a.map(c=>`<div class="item"><span><b>${esc(c.name)}</b><br><small>${esc(c.phone)}</small></span><button onclick="fillCustomer('${esc(c.name)}')">বিক্রয়ে নিন</button></div>`).join(''):'<p class="muted">কোনো কাস্টমার নেই।</p>'}
+window.fillCustomer=n=>{$('sCustomer').value=n;document.querySelector('[data-tab="sales"]').click()};
+function render(){let total=data.sales.reduce((a,s)=>a+s.total,0),due=data.sales.reduce((a,s)=>a+s.due,0);$('totalSales').textContent=money(total);$('totalDue').textContent=money(due);$('productCount').textContent=data.products.length.toLocaleString('bn-BD');renderCustomers();$('productList').innerHTML=data.products.map(p=>`<div class="item"><span><b>${esc(p.name)}</b><br><small>ক্রয় ${money(p.cost)} · বিক্রয় ${money(p.price)}</small></span><span class="pill">মজুত ${p.stock}</span></div>`).join('')||'<p class="muted">পণ্য যোগ করা হয়নি।</p>';$('sProduct').innerHTML='<option value="">পণ্য নির্বাচন করুন</option>'+data.products.map(p=>`<option value="${p.id}">${esc(p.name)} — ${money(p.price)} (মজুত ${p.stock})</option>`).join('');$('customerOptions').innerHTML=data.customers.map(c=>`<option value="${esc(c.name)}">${esc(c.phone)}</option>`).join('');$('reportTable').innerHTML=data.sales.length?'<table><tr><th>তারিখ</th><th>কাস্টমার</th><th>মোট</th><th>বাকি</th></tr>'+data.sales.map(s=>`<tr><td>${esc(s.date)}</td><td>${esc(s.customer)}</td><td>${money(s.total)}</td><td>${money(s.due)}</td></tr>`).join('')+'</table>':'<p class="muted">এখনো বিক্রয় নেই।</p>';$('recent').textContent=data.sales.length?`সর্বশেষ বিক্রয়: ${data.sales[0].customer} — ${money(data.sales[0].total)}`:'এখনো কোনো বিক্রয় নেই।'}
+$('exportData').onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='joy-kumar-store-backup.json';a.click();URL.revokeObjectURL(a.href)};
+$('importButton').onclick=()=>$('importFile').click();$('importFile').onchange=async e=>{try{let d=JSON.parse(await e.target.files[0].text());if(!Array.isArray(d.customers)||!Array.isArray(d.products)||!Array.isArray(d.sales))throw 0;data=d;save();alert('ব্যাকআপ ফিরিয়ে আনা হয়েছে')}catch(e){alert('সঠিক ব্যাকআপ ফাইল নির্বাচন করুন')}};
+render();
+</script></body></html>
