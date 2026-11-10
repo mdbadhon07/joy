@@ -1,12 +1,25 @@
 @import "tailwindcss";
 
-@layer base {
-  body {
-    font-family: 'Hind Siliguri', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  }
+:root {
+  --green: #14532d;
+  --green-hover: #207348;
+  --light: #f3f7f3;
+  --line: #dce6dd;
+  --ink: #17251a;
+  --muted: #607064;
+  --btn-bg: #e2ece4;
+  --btn-text: #17472b;
+}
+
+body {
+  margin: 0;
+  background-color: var(--light);
+  color: var(--ink);
+  font-family: system-ui, "Noto Sans Bengali", "Hind Siliguri", sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 .font-mono-nums {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', system-ui, monospace;
   font-variant-numeric: tabular-nums;
 }

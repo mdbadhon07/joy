@@ -1,29 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { Customer, StoreData, Transaction } from './types/store';
 import { loadStoreData, saveStoreData } from './utils/storage';
-import { Navbar, ActiveTab } from './components/Navbar';
+import { Header } from './components/Header';
 import { StatsCards } from './components/StatsCards';
-import { HomeOverview } from './components/HomeOverview';
+import { NavTabs, AppTab } from './components/NavTabs';
+import { HomeSection } from './components/HomeSection';
+import { CustomerSection } from './components/CustomerSection';
 import { SaleSection } from './components/SaleSection';
-import { DebtLedgerSection } from './components/DebtLedgerSection';
+import { ReportSection } from './components/ReportSection';
 import { CustomerDebtHistoryModal } from './components/CustomerDebtHistoryModal';
 import { ReceiptModal } from './components/ReceiptModal';
-import { CustomersSection } from './components/CustomersSection';
-import { ReportsSection } from './components/ReportsSection';
-import { formatTaka } from './utils/formatters';
 
 const STORE_NAME = 'জয় কুমার স্টোর';
 
 export default function App() {
   const [storeData, setStoreData] = useState<StoreData>(() => loadStoreData());
-  const [activeTab, setActiveTab] = useState<ActiveTab>('sales');
-  
-  // Modals & Active selections
+  const [activeTab, setActiveTab] = useState<AppTab>('home');
+
+  // Modals & Selected items
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
   const [activeReceiptTransaction, setActiveReceiptTransaction] = useState<Transaction | null>(null);
-  const [preselectedCustomerIdForSale, setPreselectedCustomerIdForSale] = useState<string>('');
+  
+  // Quick prefill for sale
+  const [prefilledCustomer, setPrefilledCustomer] = useState<{ id: string; name: string } | null>(null);
 
-  // Persist on change
   useEffect(() => {
     saveStoreData(storeData);
   }, [storeData]);
@@ -33,21 +33,15 @@ export default function App() {
     .filter((t) => t.type === 'sale')
     .reduce((sum, t) => sum + (t.totalAmount || 0), 0);
 
-  const totalCollected = storeData.transactions
-    .reduce((sum, t) => sum + (t.paidAmount || 0), 0);
-
   const totalDebt = storeData.customers
     .reduce((sum, c) => sum + (c.currentDebt || 0), 0);
 
-  const debtCustomersCount = storeData.customers
-    .filter((c) => (c.currentDebt || 0) > 0).length;
-
-  // Keep selectedCustomerForHistory in sync with latest customer state
+  // Keep modal customer state in sync
   const activeCustomerInModal = selectedCustomerForHistory
     ? storeData.customers.find((c) => c.id === selectedCustomerForHistory.id) || selectedCustomerForHistory
     : null;
 
-  // Handler: Add Sale (Manual Price Entry & Paid Amount)
+  // Add Sale
   const handleAddSale = (saleData: {
     customerId: string;
     customerName: string;
@@ -58,16 +52,15 @@ export default function App() {
     note: string;
     paymentMethod: 'cash' | 'bkash' | 'nagad' | 'bank' | 'other';
   }): Transaction => {
-    const txId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const txId = `tx_${Date.now()}`;
     const now = Date.now();
     const formattedDate = new Date().toLocaleString('bn-BD');
 
     let targetCustomerId = saleData.customerId;
     let updatedCustomers = [...storeData.customers];
 
-    // If new customer was entered or no ID
     if (!targetCustomerId) {
-      targetCustomerId = `cust_${now}`;
+      targetCustomerId = `c_${now}`;
       const newCust: Customer = {
         id: targetCustomerId,
         name: saleData.customerName,
@@ -120,7 +113,7 @@ export default function App() {
     return newTx;
   };
 
-  // Handler: Collect Debt Repayment (বাকি পরিশোধ জমা)
+  // Collect Debt Repayment (বাকি জমা)
   const handleCollectDebtPayment = (paymentData: {
     customerId: string;
     amount: number;
@@ -167,11 +160,10 @@ export default function App() {
       transactions: [newTx, ...storeData.transactions],
     });
 
-    // Show receipt
     setActiveReceiptTransaction(newTx);
   };
 
-  // Handler: Add new customer directly
+  // Add Customer
   const handleAddCustomer = (c: {
     name: string;
     phone: string;
@@ -179,7 +171,14 @@ export default function App() {
     initialDebt: number;
   }) => {
     const now = Date.now();
-    const customerId = `cust_${now}`;
+    const customerId = `c_${now}`;
+
+    // Check if customer already exists by phone
+    const existing = storeData.customers.find((cust) => cust.phone && cust.phone === c.phone);
+    if (existing) {
+      alert(`এই নম্বরে (${c.phone}) ইতোমধ্যে ${existing.name} নামে কাস্টমার রয়েছে।`);
+      return;
+    }
 
     const newCust: Customer = {
       id: customerId,
@@ -193,35 +192,9 @@ export default function App() {
       lastActive: now,
     };
 
-    const newTransactions = [...storeData.transactions];
-    if (c.initialDebt > 0) {
-      newTransactions.unshift({
-        id: `tx_init_${now}`,
-        customerId,
-        customerName: c.name,
-        customerPhone: c.phone,
-        type: 'sale',
-        totalAmount: c.initialDebt,
-        paidAmount: 0,
-        dueAmount: c.initialDebt,
-        note: 'পূর্বের খাতার বাকি প্রারম্ভিক স্থিতি',
-        paymentMethod: 'cash',
-        date: new Date().toLocaleString('bn-BD'),
-        timestamp: now,
-      });
-    }
-
     setStoreData({
       ...storeData,
       customers: [newCust, ...storeData.customers],
-      transactions: newTransactions,
-    });
-  };
-
-  const handleEditCustomer = (updated: Customer) => {
-    setStoreData({
-      ...storeData,
-      customers: storeData.customers.map((c) => (c.id === updated.id ? updated : c)),
     });
   };
 
@@ -232,108 +205,73 @@ export default function App() {
     });
   };
 
-  const handleStartSaleForCustomer = (customerId: string) => {
-    setPreselectedCustomerIdForSale(customerId);
+  const handleFillCustomerInSale = (customerName: string, customerId: string) => {
+    setPrefilledCustomer({ id: customerId, name: customerName });
     setActiveTab('sales');
-    setSelectedCustomerForHistory(null);
-  };
-
-  const handleQuickCollectCustomer = (customer: Customer) => {
-    setSelectedCustomerForHistory(customer);
   };
 
   const handleResetData = () => {
-    localStorage.removeItem('joyStoreDataV2');
-    localStorage.removeItem('joyStoreData');
-    window.location.reload();
+    const clean: StoreData = { customers: [], transactions: [] };
+    setStoreData(clean);
+    saveStoreData(clean);
   };
 
   return (
-    <div className="min-h-screen bg-stone-100 flex flex-col font-sans">
-      {/* Admin Top Navigation */}
-      <Navbar
-        activeTab={activeTab}
-        setActiveTab={(tab) => {
-          setActiveTab(tab);
-          if (tab !== 'sales') setPreselectedCustomerIdForSale('');
-        }}
-        debtCount={debtCustomersCount}
-        totalDebt={totalDebt}
-      />
+    <div className="min-h-screen bg-[#f3f7f3] text-[#17251a]">
+      {/* 1. Exact Screenshot Header */}
+      <Header />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-5">
-        {/* Metric Cards Banner (Visible on Home and Overview) */}
+      {/* 2. Main Content Container */}
+      <main className="max-w-[1050px] mx-auto p-3.5">
+        {/* Exact Screenshot Stat Cards (মোট বিক্রি, সর্বমোট বাকি, মোট কাস্টমার) */}
         <StatsCards
           totalSales={totalSales}
-          totalCollected={totalCollected}
           totalDebt={totalDebt}
           customerCount={storeData.customers.length}
-          debtCustomerCount={debtCustomersCount}
-          onViewDebts={() => setActiveTab('debts')}
-          onNewSale={() => setActiveTab('sales')}
         />
 
-        {/* Dynamic Views according to Tab */}
+        {/* Exact Screenshot Tabs (হোম, কাস্টমার, বিক্রয় / টাকা জমা, রিপোর্ট ও ব্যাকআপ) */}
+        <NavTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+
+        {/* Tab Views */}
         {activeTab === 'home' && (
-          <HomeOverview
-            customers={storeData.customers}
+          <HomeSection
             transactions={storeData.transactions}
+            onNavigateTab={(tab) => setActiveTab(tab)}
+          />
+        )}
+
+        {activeTab === 'customers' && (
+          <CustomerSection
+            customers={storeData.customers}
             storeName={STORE_NAME}
-            onNavigateTab={(tab) => {
-              setActiveTab(tab);
-              if (tab !== 'sales') setPreselectedCustomerIdForSale('');
-            }}
-            onSelectCustomerHistory={(cust) => setSelectedCustomerForHistory(cust)}
-            onQuickCollect={handleQuickCollectCustomer}
-            onViewReceipt={(tx) => setActiveReceiptTransaction(tx)}
+            onAddCustomer={handleAddCustomer}
+            onSelectCustomerHistory={(c) => setSelectedCustomerForHistory(c)}
+            onQuickCollect={(c) => setSelectedCustomerForHistory(c)}
+            onFillCustomerInSale={handleFillCustomerInSale}
+            onDeleteCustomer={handleDeleteCustomer}
           />
         )}
 
         {activeTab === 'sales' && (
           <SaleSection
             customers={storeData.customers}
-            onAddSale={handleAddSale}
-            preselectedCustomerId={preselectedCustomerIdForSale}
-          />
-        )}
-
-        {activeTab === 'debts' && (
-          <DebtLedgerSection
-            customers={storeData.customers}
-            transactions={storeData.transactions}
             storeName={STORE_NAME}
-            onSelectCustomerHistory={(cust) => setSelectedCustomerForHistory(cust)}
-            onQuickCollect={handleQuickCollectCustomer}
-            onNewSaleForCustomer={handleStartSaleForCustomer}
-          />
-        )}
-
-        {activeTab === 'customers' && (
-          <CustomersSection
-            customers={storeData.customers}
-            onAddCustomer={handleAddCustomer}
-            onEditCustomer={handleEditCustomer}
-            onDeleteCustomer={handleDeleteCustomer}
-            onSelectCustomerHistory={(cust) => setSelectedCustomerForHistory(cust)}
-            onNewSaleForCustomer={handleStartSaleForCustomer}
+            preselectedCustomerId={prefilledCustomer?.id}
+            preselectedCustomerName={prefilledCustomer?.name}
+            onAddSale={handleAddSale}
           />
         )}
 
         {activeTab === 'reports' && (
-          <ReportsSection
+          <ReportSection
             storeData={storeData}
             onRestoreData={(d) => setStoreData(d)}
-            onResetData={handleResetData}
             onViewReceipt={(tx) => setActiveReceiptTransaction(tx)}
+            onResetData={handleResetData}
           />
         )}
       </main>
-
-      {/* Simple Footer */}
-      <footer className="mt-auto border-t border-stone-200 bg-white py-3 px-4 text-center text-xs text-stone-500">
-        <span>{STORE_NAME} · অ্যাডমিন বাকি খাতা</span>
-      </footer>
 
       {/* MODAL: Customer Debt History & Chronological Ledger */}
       {activeCustomerInModal && (
@@ -347,7 +285,7 @@ export default function App() {
         />
       )}
 
-      {/* MODAL: Receipt Slip (Printable / Shareable) */}
+      {/* MODAL: Receipt Slip */}
       {activeReceiptTransaction && (
         <ReceiptModal
           transaction={activeReceiptTransaction}

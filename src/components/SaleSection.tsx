@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Customer, Transaction } from '../types/store';
-import { CheckCircle2, AlertCircle, UserPlus, Users } from 'lucide-react';
 import { formatTaka, getSaleReceiptMessage } from '../utils/formatters';
 import { ShareButtons } from './ShareButtons';
 
 interface SaleSectionProps {
   customers: Customer[];
+  storeName: string;
+  preselectedCustomerId?: string;
+  preselectedCustomerName?: string;
   onAddSale: (saleData: {
     customerId: string;
     customerName: string;
@@ -16,368 +18,276 @@ interface SaleSectionProps {
     note: string;
     paymentMethod: 'cash' | 'bkash' | 'nagad' | 'bank' | 'other';
   }) => Transaction;
-  preselectedCustomerId?: string;
 }
 
 export const SaleSection: React.FC<SaleSectionProps> = ({
   customers,
-  onAddSale,
+  storeName,
   preselectedCustomerId,
+  preselectedCustomerName,
+  onAddSale,
 }) => {
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(preselectedCustomerId || '');
-  const [customerNameInput, setCustomerNameInput] = useState<string>('');
-  const [customerPhoneInput, setCustomerPhoneInput] = useState<string>('');
-  const [isNewCustomerMode, setIsNewCustomerMode] = useState<boolean>(false);
-
+  const [customerInput, setCustomerInput] = useState<string>(preselectedCustomerName || '');
   const [priceInput, setPriceInput] = useState<string>('');
-  const [paidInput, setPaidInput] = useState<string>('');
+  const [paidInput, setPaidInput] = useState<string>('0');
   const [noteInput, setNoteInput] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bkash' | 'nagad' | 'bank' | 'other'>('cash');
 
-  const [errorMsg, setErrorMsg] = useState<string>('');
-  const [lastCompletedSale, setLastCompletedSale] = useState<{
+  const [lastBill, setLastBill] = useState<{
     tx: Transaction;
-    newTotalDebt: number;
+    totalCustomerDebt: number;
   } | null>(null);
-
-  const currentCustomer = customers.find((c) => c.id === selectedCustomerId);
 
   const priceNum = Math.max(0, parseFloat(priceInput) || 0);
   const paidNum = Math.max(0, parseFloat(paidInput) || 0);
   const dueNum = Math.max(0, priceNum - paidNum);
 
-  const priorDebt = currentCustomer ? currentCustomer.currentDebt : 0;
-  const projectedTotalDebt = priorDebt + dueNum;
+  // Match existing customer if name matches
+  const matchedCustomer = customers.find(
+    (c) => c.name.toLowerCase() === customerInput.trim().toLowerCase() ||
+           (c.id === preselectedCustomerId)
+  );
 
-  const addPrice = (amt: number) => {
-    const cur = parseFloat(priceInput) || 0;
-    setPriceInput(String(cur + amt));
-  };
+  const priorDebt = matchedCustomer ? (matchedCustomer.currentDebt || 0) : 0;
+  const newTotalDebt = priorDebt + dueNum;
 
-  const handleSelectCustomer = (id: string) => {
-    setSelectedCustomerId(id);
-    const found = customers.find((c) => c.id === id);
-    if (found) {
-      setCustomerNameInput(found.name);
-      setCustomerPhoneInput(found.phone);
-    }
-    setErrorMsg('');
-  };
-
-  const handleConfirmPayment = (e: React.FormEvent) => {
+  const handleSaveSale = (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg('');
-
+    const cName = customerInput.trim();
+    if (!cName) {
+      alert('কাস্টমারের নাম লিখুন।');
+      return;
+    }
     if (priceNum <= 0) {
-      setErrorMsg('মোট বিক্রয় মূল্য লিখুন।');
+      alert('মোট বিক্রয় মূল্য লিখুন।');
+      return;
+    }
+    if (paidNum < 0) {
+      alert('জমা টাকা ঋণাত্মক হতে পারবে না।');
       return;
     }
 
-    let targetCustomerId = selectedCustomerId;
-    let targetCustomerName = customerNameInput.trim();
-    let targetCustomerPhone = customerPhoneInput.trim();
+    const tx = onAddSale({
+      customerId: matchedCustomer ? matchedCustomer.id : '',
+      customerName: cName,
+      customerPhone: matchedCustomer ? matchedCustomer.phone : '',
+      totalAmount: priceNum,
+      paidAmount: Math.min(paidNum, priceNum),
+      dueAmount: dueNum,
+      note: noteInput.trim(),
+      paymentMethod,
+    });
 
-    if (isNewCustomerMode || !targetCustomerId) {
-      if (!targetCustomerName) {
-        setErrorMsg('কাস্টমারের নাম লিখুন।');
-        return;
-      }
-      const existing = customers.find(
-        (c) => c.name.toLowerCase() === targetCustomerName.toLowerCase() || 
-               (targetCustomerPhone && c.phone === targetCustomerPhone)
-      );
-      if (existing) {
-        targetCustomerId = existing.id;
-        targetCustomerName = existing.name;
-        targetCustomerPhone = existing.phone;
-      }
-    } else {
-      const existing = customers.find((c) => c.id === targetCustomerId);
-      if (existing) {
-        targetCustomerName = existing.name;
-        targetCustomerPhone = existing.phone;
-      }
-    }
+    setLastBill({
+      tx,
+      totalCustomerDebt: newTotalDebt,
+    });
 
-    try {
-      const tx = onAddSale({
-        customerId: targetCustomerId,
-        customerName: targetCustomerName || 'সাধারণ কাস্টমার',
-        customerPhone: targetCustomerPhone,
-        totalAmount: priceNum,
-        paidAmount: Math.min(paidNum, priceNum),
-        dueAmount: dueNum,
-        note: noteInput.trim(),
-        paymentMethod,
-      });
-
-      setLastCompletedSale({
-        tx,
-        newTotalDebt: (priorDebt || 0) + dueNum,
-      });
-
-      setPriceInput('');
-      setPaidInput('');
-      setNoteInput('');
-    } catch (err: unknown) {
-      setErrorMsg('বিক্রয় সম্পন্ন করতে সমস্যা হয়েছে।');
-    }
-  };
-
-  const handleStartNewSale = () => {
-    setLastCompletedSale(null);
-    setSelectedCustomerId('');
-    setCustomerNameInput('');
-    setCustomerPhoneInput('');
-    setIsNewCustomerMode(false);
     setPriceInput('');
-    setPaidInput('');
+    setPaidInput('0');
     setNoteInput('');
-    setErrorMsg('');
   };
 
   return (
-    <div className="max-w-xl mx-auto">
-      {/* If sale completed, show clean messaging card */}
-      {lastCompletedSale ? (
-        <div className="bg-white rounded-2xl border border-emerald-300 p-4 sm:p-5 shadow-xs space-y-4 animate-in fade-in">
-          <div className="flex items-start justify-between gap-3 border-b border-stone-100 pb-3">
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
-              <div>
-                <h3 className="font-bold text-stone-900 text-base">বিক্রয় সম্পন্ন হয়েছে ✓</h3>
-                <p className="text-xs text-stone-600 mt-0.5">
-                  {lastCompletedSale.tx.customerName} · বিল: <strong className="font-mono-nums">৳{lastCompletedSale.tx.totalAmount}</strong> · জমা: <strong className="font-mono-nums text-emerald-700">৳{lastCompletedSale.tx.paidAmount}</strong>
-                  {lastCompletedSale.tx.dueAmount > 0 && (
-                    <span className="text-amber-800 font-semibold ml-1">
-                      (বাকি: ৳{lastCompletedSale.tx.dueAmount})
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleStartNewSale}
-              className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors shrink-0"
-            >
-              + নতুন বিক্রয়
-            </button>
-          </div>
+    <div className="bg-white border border-[#dce6dd] rounded-[14px] p-4 sm:p-5 shadow-2xs space-y-4">
+      <h2 className="text-[19px] font-bold text-[#17251a] m-0">
+        নতুন বিক্রয় ও টাকা জমা
+      </h2>
 
-          <div className="space-y-2">
-            <span className="text-xs font-bold text-stone-700 block">
-              কাস্টমারকে বিল রসিদ পাঠান:
-            </span>
-            <ShareButtons
-              phone={lastCompletedSale.tx.customerPhone}
-              customerName={lastCompletedSale.tx.customerName}
-              messageText={getSaleReceiptMessage(
-                'জয় কুমার স্টোর',
-                lastCompletedSale.tx.customerName,
-                lastCompletedSale.tx.totalAmount,
-                lastCompletedSale.tx.paidAmount,
-                lastCompletedSale.tx.dueAmount,
-                lastCompletedSale.newTotalDebt,
-                lastCompletedSale.tx.note,
-                lastCompletedSale.tx.date
-              )}
-              variant="full"
-            />
-          </div>
+      <form onSubmit={handleSaveSale} className="space-y-3">
+        {/* কাস্টমার নাম */}
+        <div>
+          <label className="block text-[13px] text-[#607064] mb-1 font-medium">
+            কাস্টমারের নাম
+          </label>
+          <input
+            type="text"
+            required
+            list="customer-suggestions"
+            value={customerInput}
+            onChange={(e) => setCustomerInput(e.target.value)}
+            placeholder="নাম লিখুন বা সিলেক্ট করুন"
+            className="w-full p-2.5 sm:p-3 border border-[#cbd8cd] rounded-[9px] text-[14px] bg-white text-[#17251a] focus:outline-none focus:border-[#14532d]"
+          />
+          <datalist id="customer-suggestions">
+            {customers.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.phone ? `${c.phone} - ` : ''}বাকি: ৳{c.currentDebt || 0}
+              </option>
+            ))}
+          </datalist>
+          {matchedCustomer && (
+            <p className="text-[12px] text-[#607064] mt-1">
+              বর্তমান পূর্বের বাকি: <strong className="text-amber-800 font-mono-nums">৳{matchedCustomer.currentDebt || 0}</strong>
+              {matchedCustomer.phone && ` · মোবাইল: ${matchedCustomer.phone}`}
+            </p>
+          )}
         </div>
-      ) : (
-        /* SIMPLE CLEAN SALES FORM */
-        <div className="bg-white rounded-2xl border border-stone-200 p-4 sm:p-5 shadow-xs">
-          <form onSubmit={handleConfirmPayment} className="space-y-4">
-            {/* Customer selector */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold text-stone-700">কাস্টমার</label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsNewCustomerMode(!isNewCustomerMode);
-                    setSelectedCustomerId('');
-                  }}
-                  className="text-xs text-emerald-700 hover:underline font-semibold"
-                >
-                  {isNewCustomerMode ? 'তালিকা থেকে নিন' : '+ নতুন নাম লিখুন'}
-                </button>
-              </div>
 
-              {!isNewCustomerMode ? (
-                <div>
-                  <select
-                    value={selectedCustomerId}
-                    onChange={(e) => handleSelectCustomer(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-stone-300 text-sm bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                  >
-                    <option value="">-- কাস্টমার নির্বাচন করুন --</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} {c.phone ? `(${c.phone})` : ''} {c.currentDebt > 0 ? `· বাকি: ৳${c.currentDebt}` : ''}
-                      </option>
-                    ))}
-                  </select>
-
-                  {currentCustomer && currentCustomer.currentDebt > 0 && (
-                    <p className="text-xs text-amber-800 mt-1 font-medium">
-                      পূর্বের বাকি: <strong>৳{currentCustomer.currentDebt}</strong>
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    required
-                    value={customerNameInput}
-                    onChange={(e) => setCustomerNameInput(e.target.value)}
-                    placeholder="কাস্টমারের নাম *"
-                    className="px-3 py-2 rounded-xl border border-stone-300 text-sm bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                  />
-                  <input
-                    type="tel"
-                    value={customerPhoneInput}
-                    onChange={(e) => setCustomerPhoneInput(e.target.value)}
-                    placeholder="মোবাইল নম্বর"
-                    className="px-3 py-2 rounded-xl border border-stone-300 text-sm bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Price Input */}
-            <div>
-              <label className="text-xs font-bold text-stone-900 block mb-1">
+        {/* ম্যানুয়াল মূল্য এবং জমা টাকা */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-[13px] text-[#607064] font-medium">
                 মোট বিক্রয় মূল্য (টাকা) *
               </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400 font-bold text-base">
-                  ৳
-                </span>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  required
-                  value={priceInput}
-                  onChange={(e) => setPriceInput(e.target.value)}
-                  placeholder="0"
-                  className="w-full pl-8 pr-3 py-2.5 rounded-xl border-2 border-stone-300 text-xl font-bold font-mono-nums text-stone-900 bg-white focus:outline-none focus:border-emerald-600"
-                />
-              </div>
-
-              {/* Quick Adder buttons */}
-              <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                {[50, 100, 200, 500, 1000].map((amt) => (
+              <div className="flex gap-1">
+                {[50, 100, 500, 1000].map((amt) => (
                   <button
                     key={amt}
                     type="button"
-                    onClick={() => addPrice(amt)}
-                    className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-mono-nums border border-stone-200"
+                    onClick={() => setPriceInput(String((parseFloat(priceInput) || 0) + amt))}
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-[#e2ece4] text-[#17472b] font-bold"
                   >
                     +{amt}
                   </button>
                 ))}
               </div>
             </div>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              required
+              value={priceInput}
+              onChange={(e) => setPriceInput(e.target.value)}
+              placeholder="0"
+              className="w-full p-2.5 sm:p-3 border border-[#cbd8cd] rounded-[9px] text-[16px] font-bold font-mono-nums bg-white text-[#17251a] focus:outline-none focus:border-[#14532d]"
+            />
+          </div>
 
-            {/* Paid Amount Input */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-bold text-stone-900">জমা টাকা (টাকা)</label>
-                {priceNum > 0 && (
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPaidInput(String(priceNum))}
-                      className="text-xs text-emerald-700 hover:underline font-semibold"
-                    >
-                      পুরো জমা (৳{priceNum})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaidInput('0')}
-                      className="text-xs text-amber-700 hover:underline font-semibold"
-                    >
-                      বাকি (৳০)
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400 font-bold text-base">
-                  ৳
-                </span>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={paidInput}
-                  onChange={(e) => setPaidInput(e.target.value)}
-                  placeholder="0"
-                  className="w-full pl-8 pr-3 py-2.5 rounded-xl border-2 border-stone-300 text-xl font-bold font-mono-nums text-stone-900 bg-white focus:outline-none focus:border-emerald-600"
-                />
-              </div>
-            </div>
-
-            {/* Note & Method row */}
-            <div className="grid grid-cols-3 gap-2">
-              <input
-                type="text"
-                value={noteInput}
-                onChange={(e) => setNoteInput(e.target.value)}
-                placeholder="নোট / পণ্যের বিবরণ (ঐচ্ছিক)"
-                className="col-span-2 px-3 py-2 rounded-xl border border-stone-300 text-xs bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-600"
-              />
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value as any)}
-                className="px-2 py-2 rounded-xl border border-stone-300 text-xs bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-600"
-              >
-                <option value="cash">ক্যাশ (Cash)</option>
-                <option value="bkash">বিকাশ</option>
-                <option value="nagad">নগদ</option>
-                <option value="bank">ব্যাংক</option>
-              </select>
-            </div>
-
-            {/* Live Calculation preview */}
-            <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between text-xs">
-              <div>
-                <span className="text-stone-500">বাকি থাকবে: </span>
-                <strong className={`font-mono-nums text-sm ${dueNum > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
-                  {dueNum > 0 ? formatTaka(dueNum) : '৳০ (পরিশোধিত)'}
-                </strong>
-              </div>
-              {currentCustomer && dueNum > 0 && (
-                <div className="text-stone-500">
-                  মোট বাকি হবে: <strong className="font-mono-nums text-stone-800">৳{projectedTotalDebt}</strong>
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-[13px] text-[#607064] font-medium">
+                জমা টাকা
+              </label>
+              {priceNum > 0 && (
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setPaidInput(String(priceNum))}
+                    className="text-[11px] text-[#14532d] hover:underline font-semibold"
+                  >
+                    পুরো জমা
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaidInput('0')}
+                    className="text-[11px] text-amber-800 hover:underline font-semibold"
+                  >
+                    বাকি ৳০
+                  </button>
                 </div>
               )}
             </div>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              value={paidInput}
+              onChange={(e) => setPaidInput(e.target.value)}
+              placeholder="0"
+              className="w-full p-2.5 sm:p-3 border border-[#cbd8cd] rounded-[9px] text-[16px] font-bold font-mono-nums bg-white text-[#17251a] focus:outline-none focus:border-[#14532d]"
+            />
+          </div>
+        </div>
 
-            {errorMsg && (
-              <div className="p-2.5 rounded-lg bg-red-50 text-red-700 text-xs flex items-center gap-1.5">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
-            {/* Confirm Payment button */}
-            <button
-              type="submit"
-              disabled={priceNum <= 0}
-              className={`w-full py-3 rounded-xl font-bold text-base text-white transition-all shadow-xs ${
-                priceNum > 0
-                  ? 'bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] cursor-pointer'
-                  : 'bg-stone-300 cursor-not-allowed'
-              }`}
+        {/* নোট ও মাধ্যম */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div className="sm:col-span-2">
+            <label className="block text-[13px] text-[#607064] mb-1 font-medium">
+              নোট / পণ্যের বিবরণ (ঐচ্ছিক)
+            </label>
+            <input
+              type="text"
+              value={noteInput}
+              onChange={(e) => setNoteInput(e.target.value)}
+              placeholder="যেমন: মুদি বাজার"
+              className="w-full p-2.5 border border-[#cbd8cd] rounded-[9px] text-[13px] bg-white text-[#17251a] focus:outline-none focus:border-[#14532d]"
+            />
+          </div>
+          <div>
+            <label className="block text-[13px] text-[#607064] mb-1 font-medium">
+              মাধ্যম
+            </label>
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value as any)}
+              className="w-full p-2.5 border border-[#cbd8cd] rounded-[9px] text-[13px] bg-white text-[#17251a] focus:outline-none focus:border-[#14532d]"
             >
-              বিক্রয় ও পেমেন্ট নিশ্চিত করুন
-            </button>
-          </form>
+              <option value="cash">নগদ ক্যাশ</option>
+              <option value="bkash">বিকাশ</option>
+              <option value="nagad">নগদ</option>
+              <option value="bank">ব্যাংক</option>
+            </select>
+          </div>
+        </div>
+
+        {/* লাইভ সামারি লাইন */}
+        <div className="text-[13px] text-[#607064] py-2 border-t border-[#dce6dd] flex flex-wrap justify-between items-center">
+          <span>
+            মোট: <strong className="text-[#17251a] font-mono-nums">{formatTaka(priceNum)}</strong> · জমা:{' '}
+            <strong className="text-[#14532d] font-mono-nums">{formatTaka(paidNum)}</strong>
+          </span>
+          <span className="font-bold">
+            {dueNum > 0 ? (
+              <span className="text-amber-800">বাকি: {formatTaka(dueNum)}</span>
+            ) : (
+              <span className="text-[#14532d]">✓ পরিশোধিত</span>
+            )}
+          </span>
+        </div>
+
+        {/* সেভ বাটন */}
+        <button
+          type="submit"
+          className="border-0 rounded-[10px] py-3 px-5 bg-[#14532d] text-white font-bold text-[14px] cursor-pointer hover:bg-[#207348] transition-colors w-full sm:w-auto"
+        >
+          বিক্রয় সেভ ও বিল তৈরি
+        </button>
+      </form>
+
+      {/* তৈরি হওয়া বিলের রসিদ বক্স (ঠিক স্ক্রিনশটের স্টাইলে) */}
+      {lastBill && (
+        <div className="bg-[#fff8df] border border-[#f0dfa2] p-4 rounded-[10px] text-[13px] text-[#17251a] space-y-2 mt-4 animate-in fade-in">
+          <div>
+            <b className="text-[14px] text-[#14532d] block mb-1">
+              ✦ {storeName} — বিক্রয় বিল ✦
+            </b>
+            <div>কাস্টমার: <strong>{lastBill.tx.customerName}</strong></div>
+            {lastBill.tx.note && <div>বিবরণ: {lastBill.tx.note}</div>}
+            <div>মোট: {formatTaka(lastBill.tx.totalAmount)}</div>
+            <div>জমা: {formatTaka(lastBill.tx.paidAmount)}</div>
+            <div>
+              <b className="text-amber-900">এই বিলে বাকি: {formatTaka(lastBill.tx.dueAmount)}</b>
+            </div>
+            {lastBill.totalCustomerDebt > 0 && (
+              <div>কাস্টমারের বর্তমান মোট বাকি: <strong>{formatTaka(lastBill.totalCustomerDebt)}</strong></div>
+            )}
+            <small className="text-[#607064] block mt-1">{lastBill.tx.date}</small>
+          </div>
+
+          {/* WhatsApp, IMO, SMS বাটন */}
+          <div className="pt-2 border-t border-[#f0dfa2]">
+            <span className="text-xs font-bold text-[#785500] block mb-1.5">
+              কাস্টমারকে রসিদ পাঠান:
+            </span>
+            <ShareButtons
+              phone={lastBill.tx.customerPhone}
+              customerName={lastBill.tx.customerName}
+              messageText={getSaleReceiptMessage(
+                storeName,
+                lastBill.tx.customerName,
+                lastBill.tx.totalAmount,
+                lastBill.tx.paidAmount,
+                lastBill.tx.dueAmount,
+                lastBill.totalCustomerDebt,
+                lastBill.tx.note,
+                lastBill.tx.date
+              )}
+              variant="full"
+            />
+          </div>
         </div>
       )}
     </div>
