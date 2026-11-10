@@ -1,11 +1,14 @@
 import React, { useRef } from 'react';
 import { StoreData, Transaction } from '../types/store';
 import { formatTaka, formatDateTime } from '../utils/formatters';
+import { Trash2 } from 'lucide-react';
 
 interface ReportSectionProps {
   storeData: StoreData;
   onRestoreData: (data: StoreData) => void;
   onViewReceipt: (tx: Transaction) => void;
+  onDeleteTransaction: (txId: string) => void;
+  onDeleteAllTransactions: () => void;
   onResetData: () => void;
 }
 
@@ -13,6 +16,8 @@ export const ReportSection: React.FC<ReportSectionProps> = ({
   storeData,
   onRestoreData,
   onViewReceipt,
+  onDeleteTransaction,
+  onDeleteAllTransactions,
   onResetData,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,7 +92,7 @@ export const ReportSection: React.FC<ReportSectionProps> = ({
               <th className="py-2.5 px-2 font-medium text-right">মোট</th>
               <th className="py-2.5 px-2 font-medium text-right">জমা</th>
               <th className="py-2.5 px-2 font-medium text-right">বাকি</th>
-              <th className="py-2.5 px-2 font-medium text-center">রসিদ</th>
+              <th className="py-2.5 px-2 font-medium text-center">অ্যাকশন</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#dce6dd]">
@@ -128,14 +133,29 @@ export const ReportSection: React.FC<ReportSectionProps> = ({
                       <span className="text-blue-700">-{formatTaka(tx.paidAmount)}</span>
                     )}
                   </td>
-                  <td className="py-2.5 px-2 text-center">
-                    <button
-                      type="button"
-                      onClick={() => onViewReceipt(tx)}
-                      className="border-0 rounded py-1 px-2 bg-[#e2ece4] text-[#17472b] text-xs font-semibold cursor-pointer hover:bg-[#d5e3d8]"
-                    >
-                      রসিদ
-                    </button>
+                  <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => onViewReceipt(tx)}
+                        className="border-0 rounded py-1 px-2 bg-[#e2ece4] text-[#17472b] text-xs font-semibold cursor-pointer hover:bg-[#d5e3d8]"
+                        title="রসিদ দেখুন"
+                      >
+                        রসিদ
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`আপনি কি এই লেনদেনটি (${tx.customerName} - ৳${tx.totalAmount || tx.paidAmount}) মুছে ফেলতে চান? কাস্টমারের বাকির হিসাব স্বয়ংক্রিয়ভাবে সমন্বয় করা হবে।`)) {
+                            onDeleteTransaction(tx.id);
+                          }
+                        }}
+                        className="border-0 rounded py-1 px-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white text-xs cursor-pointer transition-colors"
+                        title="লেনদেন মুছুন"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -182,11 +202,25 @@ export const ReportSection: React.FC<ReportSectionProps> = ({
         নিয়মিত ব্যাকআপ ডাউনলোড করে নিরাপদে রাখুন।
       </p>
 
-      <div className="text-right pt-2 border-t border-[#dce6dd]">
+      {/* হিস্ট্রি মোছা ও রিসেট বাটনসমূহ */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#dce6dd]">
         <button
           type="button"
           onClick={() => {
-            if (confirm('আপনি কি সমস্ত ডেটা মুছে নতুনভাবে শুরু করতে চান?')) {
+            if (window.confirm('আপনি কি নিশ্চিত যে সমস্ত লেনদেনের ইতিহাস মুছে ফেলতে চান?\n\nকাস্টমারদের নাম ও নম্বর ঠিক থাকবে, কিন্তু সমস্ত বিক্রয় ও বাকির লেনদেন মুছে শূন্য হবে।')) {
+              onDeleteAllTransactions();
+            }
+          }}
+          className="border border-red-200 rounded-[8px] py-1.5 px-3 bg-red-50 text-red-700 hover:bg-red-600 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          <span>সকল লেনদেনের ইতিহাস মুছুন</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm('আপনি কি সমস্ত ডেটা (কাস্টমার ও লেনদেন) মুছে নতুনভাবে শুরু করতে চান?')) {
               onResetData();
             }
           }}

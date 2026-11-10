@@ -18,7 +18,8 @@ import {
   User,
   PlusCircle,
   Copy,
-  Check
+  Check,
+  Trash2
 } from 'lucide-react';
 import { 
   formatTaka, 
@@ -44,6 +45,8 @@ interface CustomerDebtHistoryModalProps {
     note: string;
   }) => void;
   onViewReceipt: (tx: Transaction) => void;
+  onDeleteTransaction?: (txId: string) => void;
+  onDeleteCustomer?: (customerId: string) => void;
 }
 
 export const CustomerDebtHistoryModal: React.FC<CustomerDebtHistoryModalProps> = ({
@@ -53,6 +56,8 @@ export const CustomerDebtHistoryModal: React.FC<CustomerDebtHistoryModalProps> =
   onClose,
   onCollectPayment,
   onViewReceipt,
+  onDeleteTransaction,
+  onDeleteCustomer,
 }) => {
   // Payment Collection Form State
   const [showCollectForm, setShowCollectForm] = useState(false);
@@ -395,7 +400,7 @@ export const CustomerDebtHistoryModal: React.FC<CustomerDebtHistoryModalProps> =
                         <th className="py-2.5 px-3 text-right">জমা</th>
                         <th className="py-2.5 px-3 text-right">বাকি যোগ/বিয়োগ</th>
                         <th className="py-2.5 px-3 text-right">অবশিষ্ট মোট বাকি</th>
-                        <th className="py-2.5 px-2 text-center">রসিদ</th>
+                        <th className="py-2.5 px-2 text-center">অ্যাকশন</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-100">
@@ -441,13 +446,28 @@ export const CustomerDebtHistoryModal: React.FC<CustomerDebtHistoryModalProps> =
                             {formatTaka(tx.balanceAfter)}
                           </td>
                           <td className="py-2.5 px-2 text-center whitespace-nowrap">
-                            <button
-                              onClick={() => onViewReceipt(tx)}
-                              className="p-1 rounded hover:bg-stone-200 text-stone-500 hover:text-stone-900 transition-colors"
-                              title="রসিদ দেখুন ও প্রিন্ট করুন"
-                            >
-                              <Printer className="w-3.5 h-3.5" />
-                            </button>
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => onViewReceipt(tx)}
+                                className="p-1 rounded hover:bg-stone-200 text-stone-500 hover:text-stone-900 transition-colors"
+                                title="রসিদ দেখুন ও প্রিন্ট করুন"
+                              >
+                                <Printer className="w-3.5 h-3.5" />
+                              </button>
+                              {onDeleteTransaction && (
+                                <button
+                                  onClick={() => {
+                                    if (window.confirm(`আপনি কি এই লেনদেনটি (${formatDateTime(tx.timestamp || tx.date)} - ৳${tx.totalAmount || tx.paidAmount}) মুছে ফেলতে চান? কাস্টমারের বাকির হিসাব স্বয়ংক্রিয়ভাবে সমন্বয় করা হবে।`)) {
+                                      onDeleteTransaction(tx.id);
+                                    }
+                                  }}
+                                  className="p-1 rounded hover:bg-red-100 text-stone-400 hover:text-red-600 transition-colors"
+                                  title="এই লেনদেন মুছুন"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -461,7 +481,23 @@ export const CustomerDebtHistoryModal: React.FC<CustomerDebtHistoryModalProps> =
 
         {/* Modal Footer */}
         <div className="bg-stone-50 border-t border-stone-200 px-4 py-3 flex items-center justify-between text-xs text-stone-500 shrink-0">
-          <span>জয় কুমার স্টোর বাকি লেজার সিস্টেম</span>
+          <div className="flex items-center gap-3">
+            <span>জয় কুমার স্টোর বাকি লেজার সিস্টেম</span>
+            {onDeleteCustomer && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm(`আপনি কি নিশ্চিত যে কাস্টমার '${customer.name}' এবং তার সমস্ত হিসাব মুছে ফেলতে চান?`)) {
+                    onDeleteCustomer(customer.id);
+                  }
+                }}
+                className="text-stone-400 hover:text-red-600 underline flex items-center gap-1 transition-colors"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>কাস্টমার ডিলিট</span>
+              </button>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="px-4 py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold transition-colors"

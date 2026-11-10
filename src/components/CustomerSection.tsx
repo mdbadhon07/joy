@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Customer } from '../types/store';
 import { formatTaka, getDebtReminderMessage } from '../utils/formatters';
 import { ShareButtons } from './ShareButtons';
+import { Trash2 } from 'lucide-react';
 
 interface CustomerSectionProps {
   customers: Customer[];
@@ -242,14 +243,15 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      if (confirm(`${customer.name}-কে মুছে ফেলতে চান?`)) {
+                      if (window.confirm(`আপনি কি নিশ্চিত যে কাস্টমার '${customer.name}' এবং তার সমস্ত হিসাব মুছে ফেলতে চান?`)) {
                         onDeleteCustomer(customer.id);
                       }
                     }}
-                    className="border-0 rounded-[8px] py-1.5 px-2 bg-stone-100 text-stone-500 hover:text-red-700 text-xs"
-                    title="মুছুন"
+                    className="border-0 rounded-[8px] py-1.5 px-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors"
+                    title="কাস্টমার মুছে ফেলুন"
                   >
-                    ✕
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>মুছুন</span>
                   </button>
                 </div>
               </div>

@@ -8,6 +8,7 @@ import { HomeSection } from './components/HomeSection';
 import { CustomerSection } from './components/CustomerSection';
 import { SaleSection } from './components/SaleSection';
 import { ReportSection } from './components/ReportSection';
+import { ContactListSection } from './components/ContactListSection';
 import { CustomerDebtHistoryModal } from './components/CustomerDebtHistoryModal';
 import { ReceiptModal } from './components/ReceiptModal';
 
@@ -199,10 +200,74 @@ export default function App() {
   };
 
   const handleDeleteCustomer = (id: string) => {
+    setStoreData((prev) => ({
+      ...prev,
+      customers: prev.customers.filter((c) => c.id !== id),
+      transactions: prev.transactions.filter((t) => t.customerId !== id),
+    }));
+    if (selectedCustomerForHistory?.id === id) {
+      setSelectedCustomerForHistory(null);
+    }
+  };
+
+  // Delete a single transaction & recalculate customer balance
+  const handleDeleteTransaction = (txId: string) => {
+    const txToDelete = storeData.transactions.find((t) => t.id === txId);
+    if (!txToDelete) return;
+
+    const targetCustomerId = txToDelete.customerId;
+    const updatedCustomers = storeData.customers.map((c) => {
+      if (c.id === targetCustomerId || (txToDelete.customerPhone && c.phone === txToDelete.customerPhone)) {
+        let newPurchased = c.totalPurchased || 0;
+        let newPaid = c.totalPaid || 0;
+        let newDebt = c.currentDebt || 0;
+
+        if (txToDelete.type === 'sale') {
+          newPurchased = Math.max(0, newPurchased - (txToDelete.totalAmount || 0));
+          newPaid = Math.max(0, newPaid - (txToDelete.paidAmount || 0));
+          newDebt = Math.max(0, newDebt - (txToDelete.dueAmount || 0));
+        } else if (txToDelete.type === 'debt_payment') {
+          // Undoing payment subtracts from totalPaid and restores debt
+          newPaid = Math.max(0, newPaid - (txToDelete.paidAmount || 0));
+          newDebt = newDebt + (txToDelete.paidAmount || 0);
+        }
+
+        return {
+          ...c,
+          totalPurchased: newPurchased,
+          totalPaid: newPaid,
+          currentDebt: newDebt,
+        };
+      }
+      return c;
+    });
+
     setStoreData({
       ...storeData,
-      customers: storeData.customers.filter((c) => c.id !== id),
+      customers: updatedCustomers,
+      transactions: storeData.transactions.filter((t) => t.id !== txId),
     });
+
+    if (activeReceiptTransaction?.id === txId) {
+      setActiveReceiptTransaction(null);
+    }
+  };
+
+  // Delete all transaction history & reset customer balance
+  const handleDeleteAllTransactions = () => {
+    const resetCustomers = storeData.customers.map((c) => ({
+      ...c,
+      currentDebt: 0,
+      totalPurchased: 0,
+      totalPaid: 0,
+    }));
+
+    setStoreData({
+      ...storeData,
+      customers: resetCustomers,
+      transactions: [],
+    });
+    setActiveReceiptTransaction(null);
   };
 
   const handleFillCustomerInSale = (customerName: string, customerId: string) => {
@@ -214,6 +279,8 @@ export default function App() {
     const clean: StoreData = { customers: [], transactions: [] };
     setStoreData(clean);
     saveStoreData(clean);
+    setActiveReceiptTransaction(null);
+    setSelectedCustomerForHistory(null);
   };
 
   return (
@@ -230,7 +297,7 @@ export default function App() {
           customerCount={storeData.customers.length}
         />
 
-        {/* Exact Screenshot Tabs (হোম, কাস্টমার, বিক্রয় / টাকা জমা, রিপোর্ট ও ব্যাকআপ) */}
+        {/* Exact Screenshot Tabs (হোম, কাস্টমার, কন্টাক্ট লিস্ট, বিক্রয় / টাকা জমা, রিপোর্ট ও ব্যাকআপ) */}
         <NavTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
         {/* Tab Views */}
@@ -253,6 +320,17 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'contacts' && (
+          <ContactListSection
+            customers={storeData.customers}
+            storeName={STORE_NAME}
+            onAddCustomer={handleAddCustomer}
+            onDeleteCustomer={handleDeleteCustomer}
+            onFillCustomerInSale={handleFillCustomerInSale}
+            onSelectCustomerHistory={(c) => setSelectedCustomerForHistory(c)}
+          />
+        )}
+
         {activeTab === 'sales' && (
           <SaleSection
             customers={storeData.customers}
@@ -268,6 +346,8 @@ export default function App() {
             storeData={storeData}
             onRestoreData={(d) => setStoreData(d)}
             onViewReceipt={(tx) => setActiveReceiptTransaction(tx)}
+            onDeleteTransaction={handleDeleteTransaction}
+            onDeleteAllTransactions={handleDeleteAllTransactions}
             onResetData={handleResetData}
           />
         )}
@@ -282,6 +362,8 @@ export default function App() {
           onClose={() => setSelectedCustomerForHistory(null)}
           onCollectPayment={handleCollectDebtPayment}
           onViewReceipt={(tx) => setActiveReceiptTransaction(tx)}
+          onDeleteTransaction={handleDeleteTransaction}
+          onDeleteCustomer={handleDeleteCustomer}
         />
       )}
 
