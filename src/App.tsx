@@ -16,7 +16,7 @@ const STORE_NAME = 'জয় কুমার স্টোর';
 
 export default function App() {
   const [storeData, setStoreData] = useState<StoreData>(() => loadStoreData());
-  const [activeTab, setActiveTab] = useState<ActiveTab>('home');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('sales');
   
   // Modals & Active selections
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
@@ -330,12 +330,9 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="mt-auto border-t border-stone-200 bg-white py-4 px-4 text-center text-xs text-stone-500">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>{STORE_NAME} · অ্যাডমিন সাইট ও বাকি খাতা সিস্টেম</span>
-          <span>তথ্য এই ডিভাইসের ব্রাউজারে সুরক্ষিত সংরক্ষিত থাকে</span>
-        </div>
+      {/* Simple Footer */}
+      <footer className="mt-auto border-t border-stone-200 bg-white py-3 px-4 text-center text-xs text-stone-500">
+        <span>{STORE_NAME} · অ্যাডমিন বাকি খাতা</span>
       </footer>
 
       {/* MODAL: Customer Debt History & Chronological Ledger */}

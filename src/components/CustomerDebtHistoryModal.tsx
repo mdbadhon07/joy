@@ -230,55 +230,41 @@ export const CustomerDebtHistoryModal: React.FC<CustomerDebtHistoryModalProps> =
             )}
           </div>
 
-          {/* DEDICATED WHATSAPP, IMO & SMS MESSAGING SYSTEM */}
-          <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h4 className="font-bold text-xs sm:text-sm text-stone-900 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block" />
-                  <span>কাস্টমারকে বকেয়া বাকি তাগাদা ও হিসাব বিবরণী পাঠান</span>
-                </h4>
-                <p className="text-[11px] text-stone-500 mt-0.5">
-                  এক ক্লিকে গ্রাহকের মোবাইলে WhatsApp, IMO বা SMS এর মাধ্যমে বিস্তারিত হিসাব পৌঁছে দিন।
-                </p>
+          {/* WhatsApp, IMO & SMS Messaging */}
+          {customer.phone && customer.currentDebt > 0 && (
+            <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-stone-700">বাকি তাগাদা পাঠান:</span>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setReminderMode('short')}
+                    className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                      reminderMode === 'short' ? 'bg-white shadow-2xs text-stone-900' : 'text-stone-500'
+                    }`}
+                  >
+                    সংক্ষিপ্ত
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReminderMode('full')}
+                    className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                      reminderMode === 'full' ? 'bg-white shadow-2xs text-stone-900' : 'text-stone-500'
+                    }`}
+                  >
+                    পূর্ণাঙ্গ খতিয়ান
+                  </button>
+                </div>
               </div>
 
-              {/* Message format selector */}
-              <div className="flex items-center gap-1 p-1 bg-stone-200/70 rounded-lg text-xs self-start sm:self-auto">
-                <button
-                  type="button"
-                  onClick={() => setReminderMode('short')}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
-                    reminderMode === 'short' ? 'bg-white text-stone-900 shadow-2xs' : 'text-stone-600'
-                  }`}
-                >
-                  সংক্ষিপ্ত তাগাদা
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setReminderMode('full')}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
-                    reminderMode === 'full' ? 'bg-white text-stone-900 shadow-2xs' : 'text-stone-600'
-                  }`}
-                >
-                  পূর্ণাঙ্গ খতিয়ান
-                </button>
-              </div>
+              <ShareButtons
+                phone={customer.phone}
+                customerName={customer.name}
+                messageText={activeMessageText}
+                variant="full"
+              />
             </div>
-
-            {/* Message Preview Box */}
-            <div className="p-2.5 rounded-xl bg-white border border-stone-200 text-xs text-stone-700 font-mono whitespace-pre-line max-h-28 overflow-y-auto">
-              {activeMessageText}
-            </div>
-
-            {/* WhatsApp, IMO, SMS & Copy Buttons */}
-            <ShareButtons
-              phone={customer.phone}
-              customerName={customer.name}
-              messageText={activeMessageText}
-              variant="full"
-            />
-          </div>
+          )}
 
           {/* Quick Payment Collection Form Drawer */}
           {showCollectForm && (
