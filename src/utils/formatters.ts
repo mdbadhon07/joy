@@ -38,11 +38,13 @@ export function formatDateTime(timestamp: number | string | Date): string {
 
 export function formatDateShort(timestamp: number | string | Date): string {
   const d = new Date(timestamp);
-  if (isNaN(d.getTime())) return String(timestamp);
-  
+  if (isNaN(d.getTime())) {
+    return String(timestamp).split(',')[0].trim();
+  }
+
   return d.toLocaleDateString('bn-BD', {
     year: 'numeric',
-    month: 'short',
+    month: 'long',
     day: 'numeric',
   });
 }
@@ -55,17 +57,19 @@ export function getSaleReceiptMessage(
   dueAmount: number,
   currentTotalDebt: number,
   note?: string,
-  date?: string
+  date?: string | number
 ): string {
+  const displayDate = date ? formatDateShort(date) : formatDateShort(Date.now());
   const lines = [
-    `✦ ${storeName} ✦`,
+    `      ✦ ${storeName} ✦`,
+    `━━━━━━━━━━━━━━━━━━━━`,
     `কাস্টমার: ${customerName}`,
     note ? `বিবরণ: ${note}` : '',
     `মোট বিল: ৳${totalAmount}`,
     `পরিশোধ: ৳${paidAmount}`,
     dueAmount > 0 ? `এই বিলে বাকি: ৳${dueAmount}` : 'এই বিল সম্পূর্ণ পরিশোধিত ✓',
     `আপনার বর্তমান মোট বাকি: ৳${currentTotalDebt}`,
-    `তারিখ: ${date || new Date().toLocaleDateString('bn-BD')}`,
+    `তারিখ: ${displayDate} · হৃদয় সাহা`,
     `ধন্যবাদ, আবার আসবেন!`,
   ].filter(Boolean);
 
@@ -78,15 +82,18 @@ export function getDebtPaymentReceiptMessage(
   paidAmount: number,
   remainingDebt: number,
   note?: string,
-  date?: string
+  date?: string | number
 ): string {
+  const displayDate = date ? formatDateShort(date) : formatDateShort(Date.now());
   const lines = [
-    `✦ ${storeName} — বাকি জমা রসিদ ✦`,
+    `      ✦ ${storeName} ✦`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    `বাকি জমা রসিদ`,
     `কাস্টমার: ${customerName}`,
     `জমা গ্রহণ: ৳${paidAmount}`,
     note ? `মাধ্যম/নোট: ${note}` : '',
     `বর্তমান অবশিষ্ট বাকি: ৳${remainingDebt}`,
-    `তারিখ: ${date || new Date().toLocaleDateString('bn-BD')}`,
+    `তারিখ: ${displayDate} · হৃদয় সাহা`,
     `ধন্যবাদ!`,
   ].filter(Boolean);
 

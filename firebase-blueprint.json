@@ -1,0 +1,241 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Authenticated store owner account root document for multi-device cloud sync.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the account owner."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200,
+          "description": "Verified Google account email."
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Display name of the store owner."
+        },
+        "storeName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Name of the store."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of account creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update."
+        }
+      },
+      "required": ["uid", "email", "storeName", "createdAt", "updatedAt"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Store customer record with contact details and current outstanding debt.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Unique customer identifier."
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Owner UID matching parent user document."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Customer full name."
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "Customer phone number."
+        },
+        "address": {
+          "type": "string",
+          "maxLength": 250,
+          "description": "Optional customer address."
+        },
+        "currentDebt": {
+          "type": "number",
+          "description": "Current outstanding debt in BDT."
+        },
+        "totalPurchased": {
+          "type": "number",
+          "description": "Cumulative purchase total in BDT."
+        },
+        "totalPaid": {
+          "type": "number",
+          "description": "Cumulative paid amount in BDT."
+        },
+        "clientCreatedAt": {
+          "type": "number",
+          "description": "Client creation epoch ms."
+        },
+        "lastActive": {
+          "type": "number",
+          "description": "Last activity epoch ms."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update."
+        }
+      },
+      "required": [
+        "id",
+        "ownerUid",
+        "name",
+        "phone",
+        "currentDebt",
+        "totalPurchased",
+        "totalPaid",
+        "clientCreatedAt",
+        "lastActive",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Sale or debt repayment ledger transaction linked to a customer.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Unique transaction identifier."
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Owner UID matching parent user document."
+        },
+        "customerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Referenced customer document ID."
+        },
+        "customerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Customer name snapshot."
+        },
+        "customerPhone": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "Customer phone snapshot."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["sale", "debt_payment"],
+          "description": "Transaction type."
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Total bill amount."
+        },
+        "paidAmount": {
+          "type": "number",
+          "description": "Paid amount in this transaction."
+        },
+        "dueAmount": {
+          "type": "number",
+          "description": "Due change in this transaction."
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Optional transaction description."
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["cash", "bkash", "nagad", "bank", "other"],
+          "description": "Payment method."
+        },
+        "date": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Formatted display date string."
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "Transaction epoch ms for chronological sorting."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update."
+        }
+      },
+      "required": [
+        "id",
+        "ownerUid",
+        "customerId",
+        "customerName",
+        "customerPhone",
+        "type",
+        "totalAmount",
+        "paidAmount",
+        "dueAmount",
+        "paymentMethod",
+        "date",
+        "timestamp",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserAccount" },
+      "description": "Store owner account profile and root gate for user-owned subcollections."
+    },
+    "/users/{userId}/customers/{customerId}": {
+      "schema": { "$ref": "#/entities/Customer" },
+      "description": "Private customer records owned by the authenticated user."
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "Private sale and debt payment transactions owned by the authenticated user."
+    }
+  }
+}

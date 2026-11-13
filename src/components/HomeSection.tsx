@@ -5,9 +5,16 @@ import { formatTaka } from '../utils/formatters';
 interface HomeSectionProps {
   transactions: Transaction[];
   onNavigateTab: (tab: 'customers' | 'sales' | 'reports') => void;
+  cloudUserEmail?: string | null;
+  onSignIn?: () => void;
 }
 
-export const HomeSection: React.FC<HomeSectionProps> = ({ transactions, onNavigateTab }) => {
+export const HomeSection: React.FC<HomeSectionProps> = ({
+  transactions,
+  onNavigateTab,
+  cloudUserEmail,
+  onSignIn,
+}) => {
   const latestTx = transactions.length > 0 ? transactions[0] : null;
 
   return (
@@ -39,10 +46,27 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ transactions, onNaviga
         )}
       </div>
 
-      {/* Yellow Notice box matching screenshot */}
-      <div className="bg-[#fff8df] border border-[#f0dfa2] p-3 rounded-[10px] text-[13px] text-[#785500] leading-relaxed mt-2.5">
-        এই সংস্করণে তথ্য এই ব্রাউজারের ডিভাইসেই সেভ থাকে। ফোন ও ল্যাপটপে একই ডেটা স্বয়ংক্রিয়ভাবে সিঙ্ক হয় না। নিয়মিত রিপোর্ট থেকে ব্যাকআপ রাখুন।
-      </div>
+      {/* Sync status notice box */}
+      {cloudUserEmail ? (
+        <div className="bg-[#eaf4ec] border border-[#bfd8c4] p-3 rounded-[10px] text-[13px] text-[#14532d] leading-relaxed mt-2.5">
+          <strong>ক্লাউড সিঙ্ক চালু আছে ({cloudUserEmail})।</strong> আপনার সব কাস্টমার ও হিসাব অনলাইনে নিরাপদে সেভ হচ্ছে — একই ইমেইল দিয়ে যেকোনো ফোন বা কম্পিউটার থেকে লগইন করলে সব তথ্য সাথে সাথে পেয়ে যাবেন।
+        </div>
+      ) : (
+        <div className="bg-[#fff8df] border border-[#f0dfa2] p-3 rounded-[10px] text-[13px] text-[#785500] leading-relaxed mt-2.5 space-y-2">
+          <p className="m-0">
+            বর্তমানে তথ্য শুধু এই ডিভাইসেই সেভ হচ্ছে। ফোন ও ল্যাপটপে স্বয়ংক্রিয়ভাবে সব হিসাব পেতে উপরে <strong>Google দিয়ে লগইন ও সিঙ্ক</strong> চালু করুন।
+          </p>
+          {onSignIn && (
+            <button
+              type="button"
+              onClick={onSignIn}
+              className="border-0 rounded-[8px] py-1.5 px-3 bg-[#14532d] hover:bg-[#207348] text-white text-xs font-semibold cursor-pointer transition-colors"
+            >
+              এখনই ক্লাউড সিঙ্ক চালু করুন
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Quick navigation buttons */}
       <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-[#dce6dd]">

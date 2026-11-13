@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Customer, Transaction } from '../types/store';
-import { formatTaka, getSaleReceiptMessage } from '../utils/formatters';
+import { formatTaka, formatDateShort, getSaleReceiptMessage } from '../utils/formatters';
 import { ShareButtons } from './ShareButtons';
 
 interface SaleSectionProps {
@@ -247,13 +247,13 @@ export const SaleSection: React.FC<SaleSectionProps> = ({
         </button>
       </form>
 
-      {/* তৈরি হওয়া বিলের রসিদ বক্স (ঠিক স্ক্রিনশটের স্টাইলে) */}
+      {/* তৈরি হওয়া বিলের রসিদ বক্স */}
       {lastBill && (
         <div className="bg-[#fff8df] border border-[#f0dfa2] p-4 rounded-[10px] text-[13px] text-[#17251a] space-y-2 mt-4 animate-in fade-in">
           <div>
-            <b className="text-[14px] text-[#14532d] block mb-1">
-              ✦ {storeName} — বিক্রয় বিল ✦
-            </b>
+            <div className="text-center bg-[#14532d] text-white py-2 px-3 rounded-[9px] mb-2.5 shadow-2xs">
+              <strong className="text-[15px] tracking-wide">✦ {storeName} ✦</strong>
+            </div>
             <div>কাস্টমার: <strong>{lastBill.tx.customerName}</strong></div>
             {lastBill.tx.note && <div>বিবরণ: {lastBill.tx.note}</div>}
             <div>মোট: {formatTaka(lastBill.tx.totalAmount)}</div>
@@ -264,7 +264,10 @@ export const SaleSection: React.FC<SaleSectionProps> = ({
             {lastBill.totalCustomerDebt > 0 && (
               <div>কাস্টমারের বর্তমান মোট বাকি: <strong>{formatTaka(lastBill.totalCustomerDebt)}</strong></div>
             )}
-            <small className="text-[#607064] block mt-1">{lastBill.tx.date}</small>
+            <small className="text-[#607064] block mt-1.5">
+              তারিখ: {formatDateShort(lastBill.tx.timestamp || lastBill.tx.date)}{' '}
+              <span className="text-[11px] font-semibold text-[#785500]">· হৃদয় সাহা</span>
+            </small>
           </div>
 
           {/* WhatsApp, IMO, SMS বাটন */}
@@ -283,7 +286,7 @@ export const SaleSection: React.FC<SaleSectionProps> = ({
                 lastBill.tx.dueAmount,
                 lastBill.totalCustomerDebt,
                 lastBill.tx.note,
-                lastBill.tx.date
+                formatDateShort(lastBill.tx.timestamp || lastBill.tx.date)
               )}
               variant="full"
             />

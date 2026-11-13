@@ -1,0 +1,181 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isVerified() && request.auth.uid == userId;
+    }
+
+    function hasUserParent(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    function isValidUserAccount(data, userId) {
+      return data.keys().hasAll(['uid', 'email', 'storeName', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'storeName', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid == userId && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 200
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 120))
+        && data.storeName is string && data.storeName.size() >= 1 && data.storeName.size() <= 120
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCustomer(data, userId, customerId) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'name', 'phone',
+          'currentDebt', 'totalPurchased', 'totalPaid',
+          'clientCreatedAt', 'lastActive', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'name', 'phone', 'address',
+          'currentDebt', 'totalPurchased', 'totalPaid',
+          'clientCreatedAt', 'lastActive', 'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id == customerId && isValidId(data.id)
+        && data.ownerUid is string && data.ownerUid == userId && isValidId(data.ownerUid)
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.phone is string && data.phone.size() <= 30
+        && (!('address' in data) || (data.address is string && data.address.size() <= 250))
+        && (data.currentDebt is int || data.currentDebt is float) && data.currentDebt >= 0
+        && (data.totalPurchased is int || data.totalPurchased is float) && data.totalPurchased >= 0
+        && (data.totalPaid is int || data.totalPaid is float) && data.totalPaid >= 0
+        && (data.clientCreatedAt is int || data.clientCreatedAt is float) && data.clientCreatedAt >= 0
+        && (data.lastActive is int || data.lastActive is float) && data.lastActive >= 0
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidTransaction(data, userId, txId) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'customerId', 'customerName', 'customerPhone',
+          'type', 'totalAmount', 'paidAmount', 'dueAmount',
+          'paymentMethod', 'date', 'timestamp', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'customerId', 'customerName', 'customerPhone',
+          'type', 'totalAmount', 'paidAmount', 'dueAmount', 'note',
+          'paymentMethod', 'date', 'timestamp', 'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id == txId && isValidId(data.id)
+        && data.ownerUid is string && data.ownerUid == userId && isValidId(data.ownerUid)
+        && data.customerId is string && isValidId(data.customerId)
+        && data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 120
+        && data.customerPhone is string && data.customerPhone.size() <= 30
+        && data.type in ['sale', 'debt_payment']
+        && (data.totalAmount is int || data.totalAmount is float) && data.totalAmount >= 0
+        && (data.paidAmount is int || data.paidAmount is float) && data.paidAmount >= 0
+        && (data.dueAmount is int || data.dueAmount is float)
+        && (!('note' in data) || (data.note is string && data.note.size() <= 500))
+        && data.paymentMethod in ['cash', 'bkash', 'nagad', 'bank', 'other']
+        && data.date is string && data.date.size() >= 1 && data.date.size() <= 100
+        && (data.timestamp is int || data.timestamp is float) && data.timestamp >= 0
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserAccount(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserAccount(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'displayName', 'storeName', 'updatedAt']);
+      allow delete: if false;
+
+      match /customers/{customerId} {
+        allow get: if isValidId(userId)
+          && isValidId(customerId)
+          && isOwner(userId)
+          && existing().ownerUid == request.auth.uid;
+        allow list: if isOwner(userId)
+          && existing().ownerUid == request.auth.uid;
+        allow create: if isValidId(userId)
+          && isValidId(customerId)
+          && isOwner(userId)
+          && isValidCustomer(incoming(), userId, customerId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && hasUserParent(userId);
+        allow update: if isValidId(userId)
+          && isValidId(customerId)
+          && isOwner(userId)
+          && isValidCustomer(incoming(), userId, customerId)
+          && incoming().id == existing().id
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().clientCreatedAt == existing().clientCreatedAt
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && hasUserParent(userId)
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'name', 'phone', 'address', 'currentDebt', 'totalPurchased', 'totalPaid', 'lastActive', 'updatedAt'
+            ])
+            || incoming().diff(existing()).affectedKeys().hasOnly([
+              'currentDebt', 'totalPurchased', 'totalPaid', 'lastActive', 'updatedAt'
+            ])
+          );
+        allow delete: if isValidId(userId)
+          && isValidId(customerId)
+          && isOwner(userId)
+          && existing().ownerUid == request.auth.uid
+          && hasUserParent(userId);
+      }
+
+      match /transactions/{transactionId} {
+        allow get: if isValidId(userId)
+          && isValidId(transactionId)
+          && isOwner(userId)
+          && existing().ownerUid == request.auth.uid;
+        allow list: if isOwner(userId)
+          && existing().ownerUid == request.auth.uid;
+        allow create: if isValidId(userId)
+          && isValidId(transactionId)
+          && isOwner(userId)
+          && isValidTransaction(incoming(), userId, transactionId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && hasUserParent(userId)
+          && existsAfter(/databases/$(database)/documents/users/$(userId)/customers/$(incoming().customerId));
+        allow update: if false;
+        allow delete: if isValidId(userId)
+          && isValidId(transactionId)
+          && isOwner(userId)
+          && existing().ownerUid == request.auth.uid
+          && hasUserParent(userId);
+      }
+    }
+  }
+}

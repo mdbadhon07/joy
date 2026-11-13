@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { 
   formatTaka, 
-  formatDateTime, 
+  formatDateShort,
   openWhatsApp, 
   openSMS,
   getSaleReceiptMessage,
@@ -42,6 +42,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   const isSale = transaction.type === 'sale';
   const customerDebt = customer ? customer.currentDebt : Math.max(0, transaction.dueAmount);
 
+  const formattedDateOnly = formatDateShort(transaction.timestamp || transaction.date);
+
   const receiptText = isSale
     ? getSaleReceiptMessage(
         storeName,
@@ -51,7 +53,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         transaction.dueAmount,
         customerDebt,
         transaction.note,
-        formatDateTime(transaction.timestamp || transaction.date)
+        formattedDateOnly
       )
     : getDebtPaymentReceiptMessage(
         storeName,
@@ -59,7 +61,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         transaction.paidAmount,
         customerDebt,
         transaction.note,
-        formatDateTime(transaction.timestamp || transaction.date)
+        formattedDateOnly
       );
 
   const handleCopy = () => {
@@ -98,12 +100,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         <div id="printable-receipt" className="p-6 space-y-4 bg-stone-50/50">
           {/* Store Brand Lockup */}
           <div className="text-center border-b border-stone-200 pb-4">
-            <h2 className="text-xl font-bold text-stone-900 tracking-tight">✦ {storeName} ✦</h2>
+            <div className="inline-block bg-emerald-900 text-white px-4 py-1.5 rounded-lg shadow-2xs mb-1.5">
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight m-0">✦ {storeName} ✦</h2>
+            </div>
             <p className="text-xs text-stone-500 mt-0.5">আপনার বিশ্বস্ত কেনাকাটার ঠিকানা</p>
             <p className="text-[11px] text-stone-400">সততা · বিশ্বাস · সেবার অঙ্গীকার</p>
           </div>
 
-          {/* Customer & Timestamp */}
+          {/* Customer & Date */}
           <div className="flex justify-between items-start text-xs border-b border-stone-200 pb-3">
             <div>
               <span className="text-stone-400 block">কাস্টমার</span>
@@ -113,9 +117,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               )}
             </div>
             <div className="text-right">
-              <span className="text-stone-400 block">তারিখ ও সময়</span>
+              <span className="text-stone-400 block">তারিখ</span>
               <span className="text-stone-700 font-medium">
-                {formatDateTime(transaction.timestamp || transaction.date)}
+                {formattedDateOnly}{' '}
+                <span className="text-[11px] text-stone-500 font-normal">· হৃদয় সাহা</span>
               </span>
               <span className="text-[10px] text-stone-400 block mt-0.5">
                 ID: {transaction.id.slice(0, 8)}
