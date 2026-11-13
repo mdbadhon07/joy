@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import {
+  User,
+  onAuthStateChanged,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  signOut,
+} from 'firebase/auth';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { Customer, StoreData, Transaction } from './types/store';
 import { loadStoreData, saveStoreData } from './utils/storage';
@@ -42,6 +49,7 @@ export default function App() {
   // Firebase Auth & Cloud Sync State
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [isSigningIn, setIsSigningIn] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [pendingLocalData, setPendingLocalData] = useState<StoreData | null>(null);
@@ -61,20 +69,27 @@ export default function App() {
     saveStoreData(storeData);
   }, [storeData]);
 
-  // Listen to Firebase Auth state
+  // Listen to Firebase Auth state & check redirect result
   useEffect(() => {
+    getRedirectResult(auth).catch((err) => {
+      console.error('Redirect sign-in error:', err);
+      setSyncError(formatAuthError(err));
+    });
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         // Snapshot existing local data before cloud snapshot replaces state
         preCloudLocalRef.current = loadStoreData();
         initialMigrationCheckedRef.current = false;
         setUser(firebaseUser);
+        setSyncError(null);
       } else {
         setUser(null);
         setPendingLocalData(null);
         initialMigrationCheckedRef.current = false;
       }
       setAuthLoading(false);
+      setIsSigningIn(false);
     });
     return () => unsubscribe();
   }, []);
@@ -225,27 +240,88 @@ export default function App() {
     };
   }, [user]);
 
+  const formatAuthError = (err: unknown): string => {
+    const code = (err as { code?: string })?.code || '';
+    const msg = err instanceof Error ? err.message : String(err);
+    const host = typeof window !== 'undefined' ? window.location.hostname : '';
+
+    if (code === 'auth/unauthorized-domain') {
+      return `এই ডোমেইন (${host}) Firebase-এ অনুমোদিত নয়। Firebase Console > Authentication > Settings > Authorized domains-এ "${host}" যোগ করুন, অথবা মূল AI Studio অ্যাপ লিংক থেকে ওপেন করুন।`;
+    }
+    if (code === 'auth/popup-blocked') {
+      return 'ব্রাউজার পপ-আপ ব্লক করেছে। ব্রাউজারে Pop-up অনুমতি দিন, অথবা পাশের "পপ-আপ ছাড়া লগইন" বাটনে চাপ দিন / Chrome ব্রাউজারে ওপেন করুন।';
+    }
+    if (code === 'auth/popup-closed-by-user') {
+      return 'লগইন পপ-আপটি সম্পূর্ণ হওয়ার আগেই বন্ধ হয়ে গেছে। আবার চেষ্টা করুন (ইন-অ্যাপ ব্রাউজার হলে Chrome-এ খুলুন)।';
+    }
+    if (code === 'auth/cancelled-popup-request') {
+      return 'পূর্ববর্তী লগইন অনুরোধ বাতিল হয়েছে। একটু অপেক্ষা করে একবার চাপুন।';
+    }
+    if (code === 'auth/operation-not-supported-in-this-environment') {
+      return 'এই ব্রাউজারে পপ-আপ লগইন সমর্থিত নয়। অনুগ্রহ করে ফোনের Chrome ব্রাউজারে লিংকটি ওপেন করুন অথবা "পপ-আপ ছাড়া লগইন" চেষ্টা করুন।';
+    }
+    if (code === 'auth/operation-not-allowed') {
+      return 'Firebase-এ Google Sign-In চালু নেই। Firebase Console > Authentication > Sign-in method থেকে Google চালু করুন।';
+    }
+    if (code === 'auth/network-request-failed') {
+      return 'ইন্টারনেট সংযোগ পাওয়া যায়নি। নেটওয়ার্ক চেক করে আবার চেষ্টা করুন।';
+    }
+    return `লগইন করা যায়নি (${code || msg})। অনুগ্রহ করে Chrome ব্রাউজারে খুলে আবার চেষ্টা করুন।`;
+  };
+
   const handleCloudError = (err: unknown) => {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes('Quota exceeded')) {
       setSyncError('আজকের ফ্রি ক্লাউড সীমা (Quota) শেষ হয়ে গেছে। আগামীকাল আবার স্বাভাবিক হয়ে যাবে।');
     } else {
-      setSyncError('ক্লাউড সিঙ্কে সমস্যা হয়েছে। ইন্টারনেট সংযোগ যাচাই করুন।');
+      setSyncError(`ক্লাউড সিঙ্কে সমস্যা হয়েছে (${msg})। ইন্টারনেট সংযোগ যাচাই করুন।`);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    if (isSigningIn) return;
     setSyncError(null);
+    setIsSigningIn(true);
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (err: unknown) {
-      const code = (err as { code?: string })?.code;
-      if (code === 'auth/popup-closed-by-user') return;
-      if (code === 'auth/popup-blocked') {
-        setSyncError('ব্রাউজার পপ-আপ ব্লক করেছে। অনুগ্রহ করে পপ-আপ অনুমতি দিয়ে আবার চেষ্টা করুন।');
-      } else {
-        setSyncError('লগইন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।');
+      console.error('Google sign-in popup error:', err);
+      const code = (err as { code?: string })?.code || '';
+      const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
+
+      // On standalone Chrome/Vercel (not inside iframe), auto-fallback to redirect if popup is blocked
+      if (
+        !isInIframe &&
+        (code === 'auth/popup-blocked' ||
+          code === 'auth/operation-not-supported-in-this-environment')
+      ) {
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        } catch (redirErr) {
+          console.error('Redirect fallback error:', redirErr);
+          setSyncError(formatAuthError(redirErr));
+          setIsSigningIn(false);
+          return;
+        }
       }
+
+      setSyncError(formatAuthError(err));
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
+  const handleGoogleRedirectSignIn = async () => {
+    if (isSigningIn) return;
+    setSyncError(null);
+    setIsSigningIn(true);
+    try {
+      await signInWithRedirect(auth, googleProvider);
+    } catch (err: unknown) {
+      console.error('Google redirect sign-in error:', err);
+      setSyncError(formatAuthError(err));
+      setIsSigningIn(false);
     }
   };
 
@@ -640,10 +716,16 @@ export default function App() {
         <CloudSyncBar
           user={user}
           authLoading={authLoading}
+          isSigningIn={isSigningIn}
           isSyncing={isSyncing}
           syncError={syncError}
           hasPendingLocalMerge={Boolean(pendingLocalData)}
           onSignIn={handleGoogleSignIn}
+          onRedirectSignIn={
+            typeof window !== 'undefined' && window.self === window.top
+              ? handleGoogleRedirectSignIn
+              : undefined
+          }
           onSignOut={handleGoogleSignOut}
           onMergeLocalData={handleMergePendingLocalData}
         />

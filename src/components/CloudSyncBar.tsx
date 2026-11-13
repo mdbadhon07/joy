@@ -1,14 +1,16 @@
 import React from 'react';
 import { User } from 'firebase/auth';
-import { Cloud, CloudOff, LogIn, LogOut, RefreshCw, UploadCloud } from 'lucide-react';
+import { Cloud, CloudOff, LogIn, LogOut, RefreshCw, UploadCloud, AlertCircle } from 'lucide-react';
 
 interface CloudSyncBarProps {
   user: User | null;
   authLoading: boolean;
+  isSigningIn?: boolean;
   isSyncing: boolean;
   syncError: string | null;
   hasPendingLocalMerge: boolean;
   onSignIn: () => void;
+  onRedirectSignIn?: () => void;
   onSignOut: () => void;
   onMergeLocalData: () => void;
 }
@@ -16,10 +18,12 @@ interface CloudSyncBarProps {
 export const CloudSyncBar: React.FC<CloudSyncBarProps> = ({
   user,
   authLoading,
+  isSigningIn = false,
   isSyncing,
   syncError,
   hasPendingLocalMerge,
   onSignIn,
+  onRedirectSignIn,
   onSignOut,
   onMergeLocalData,
 }) => {
@@ -100,20 +104,54 @@ export const CloudSyncBar: React.FC<CloudSyncBarProps> = ({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onSignIn}
-            className="border-0 rounded-[9px] py-2 px-3.5 bg-[#14532d] hover:bg-[#207348] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>Google দিয়ে লগইন ও সিঙ্ক</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onSignIn}
+              disabled={isSigningIn}
+              className="border-0 rounded-[9px] py-2 px-3.5 bg-[#14532d] hover:bg-[#207348] disabled:opacity-60 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
+            >
+              {isSigningIn ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <LogIn className="w-3.5 h-3.5" />
+              )}
+              <span>{isSigningIn ? 'লগইন হচ্ছে...' : 'Google দিয়ে লগইন ও সিঙ্ক'}</span>
+            </button>
+
+            {onRedirectSignIn && (
+              <button
+                type="button"
+                onClick={onRedirectSignIn}
+                disabled={isSigningIn}
+                className="border border-[#cbd8cd] rounded-[9px] py-2 px-2.5 bg-[#f3f7f3] hover:bg-[#e2ece4] text-[#17472b] text-[11px] font-semibold cursor-pointer transition-colors"
+                title="পপ-আপ ব্লক হলে এই বাটন দিয়ে চেষ্টা করুন"
+              >
+                পপ-আপ ছাড়া লগইন
+              </button>
+            )}
+          </div>
         </div>
       )}
 
       {syncError && (
-        <div className="px-3 py-2 rounded-[10px] bg-red-50 border border-red-200 text-red-800 text-xs">
-          {syncError}
+        <div className="px-3 py-2.5 rounded-[10px] bg-red-50 border border-red-200 text-red-900 text-xs flex items-start gap-2 leading-relaxed">
+          <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+          <div className="break-words space-y-1.5">
+            <div>{syncError}</div>
+            {typeof window !== 'undefined' && window.self !== window.top && (
+              <div>
+                <a
+                  href={window.location.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block font-bold underline text-red-800 hover:text-red-950"
+                >
+                  সরাসরি ব্রাউজার ট্যাবে খুলে লগইন করুন ↗
+                </a>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
