@@ -115,6 +115,11 @@ export const ReportSection: React.FC<ReportSectionProps> = ({
                         (বাকি জমা)
                       </span>
                     )}
+                    {tx.type === 'sale' && tx.totalAmount === 0 && tx.dueAmount > 0 && (
+                      <span className="text-[11px] text-amber-800 font-normal ml-1">
+                        (আগের বাকি)
+                      </span>
+                    )}
                   </td>
                   <td className="py-2.5 px-2 text-right font-mono-nums">
                     {tx.totalAmount > 0 ? formatTaka(tx.totalAmount) : '—'}

@@ -72,7 +72,7 @@ export const CustomerDebtHistoryModal: React.FC<CustomerDebtHistoryModalProps> =
 
   // Filter and sort transactions for this customer
   const customerTxs = transactions
-    .filter((t) => t.customerId === customer.id || t.customerPhone === customer.phone)
+    .filter((t) => t.customerId === customer.id || (Boolean(customer.phone) && t.customerPhone === customer.phone))
     .sort((a, b) => b.timestamp - a.timestamp);
 
   // Compute running balance timeline
@@ -411,10 +411,17 @@ export const CustomerDebtHistoryModal: React.FC<CustomerDebtHistoryModalProps> =
                           </td>
                           <td className="py-2.5 px-3 whitespace-nowrap">
                             {tx.type === 'sale' ? (
-                              <span className="inline-flex items-center gap-1 font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                                <ArrowUpRight className="w-3 h-3 text-emerald-600" />
-                                বিক্রয়
-                              </span>
+                              tx.totalAmount === 0 && tx.dueAmount > 0 ? (
+                                <span className="inline-flex items-center gap-1 font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                  <ArrowUpRight className="w-3 h-3 text-amber-600" />
+                                  আগের বাকি
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                  <ArrowUpRight className="w-3 h-3 text-emerald-600" />
+                                  বিক্রয়
+                                </span>
+                              )
                             ) : (
                               <span className="inline-flex items-center gap-1 font-semibold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
                                 <ArrowDownLeft className="w-3 h-3 text-blue-600" />

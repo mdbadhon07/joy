@@ -45,6 +45,7 @@ export const ContactListSection: React.FC<ContactListSectionProps> = ({
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [newAddress, setNewAddress] = useState('');
+  const [newInitialDebt, setNewInitialDebt] = useState('');
 
   const vcfInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,6 +63,7 @@ export const ContactListSection: React.FC<ContactListSectionProps> = ({
     e.preventDefault();
     const trimmedName = newName.trim();
     const trimmedPhone = newPhone.trim();
+    const parsedDebt = Math.max(0, parseFloat(newInitialDebt) || 0);
     if (!trimmedName) {
       alert('কাস্টমারের নাম লিখুন।');
       return;
@@ -71,12 +73,13 @@ export const ContactListSection: React.FC<ContactListSectionProps> = ({
       name: trimmedName,
       phone: trimmedPhone,
       address: newAddress.trim(),
-      initialDebt: 0,
+      initialDebt: parsedDebt,
     });
 
     setNewName('');
     setNewPhone('');
     setNewAddress('');
+    setNewInitialDebt('');
     setShowAddForm(false);
   };
 
@@ -280,7 +283,7 @@ export const ContactListSection: React.FC<ContactListSectionProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             <div>
               <label className="block text-[12px] text-[#607064] font-medium mb-1">
                 নাম <span className="text-red-500">*</span>
@@ -319,6 +322,26 @@ export const ContactListSection: React.FC<ContactListSectionProps> = ({
                 placeholder="যেমন: বাজারপাড়া"
                 className="w-full p-2.5 border border-[#cbd8cd] rounded-[8px] text-[13px] bg-white text-[#17251a] focus:outline-none focus:border-[#14532d]"
               />
+            </div>
+
+            <div>
+              <label className="block text-[12px] text-[#607064] font-medium mb-1">
+                আগের বাকি (যদি থাকে)
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-[#607064] text-[13px] font-bold">
+                  ৳
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={newInitialDebt}
+                  onChange={(e) => setNewInitialDebt(e.target.value)}
+                  placeholder="0"
+                  className="w-full pl-6 pr-2.5 py-2.5 border border-[#cbd8cd] rounded-[8px] text-[13px] font-mono-nums bg-white text-[#17251a] focus:outline-none focus:border-[#14532d]"
+                />
+              </div>
             </div>
           </div>
 

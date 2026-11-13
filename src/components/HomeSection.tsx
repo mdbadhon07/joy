@@ -25,7 +25,11 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ transactions, onNaviga
           <span>
             সর্বশেষ লেনদেন: <strong className="text-[#17251a]">{latestTx.customerName}</strong> —{' '}
             {latestTx.type === 'sale' ? (
-              <>মোট {formatTaka(latestTx.totalAmount)} {latestTx.dueAmount > 0 && <span className="text-amber-800 font-semibold">(বাকি {formatTaka(latestTx.dueAmount)})</span>}</>
+              latestTx.totalAmount === 0 && latestTx.dueAmount > 0 ? (
+                <>আগের বাকি <span className="text-amber-800 font-semibold">{formatTaka(latestTx.dueAmount)}</span></>
+              ) : (
+                <>মোট {formatTaka(latestTx.totalAmount)} {latestTx.dueAmount > 0 && <span className="text-amber-800 font-semibold">(বাকি {formatTaka(latestTx.dueAmount)})</span>}</>
+              )
             ) : (
               <>জমা {formatTaka(latestTx.paidAmount)}</>
             )}

@@ -172,10 +172,12 @@ export default function App() {
     initialDebt: number;
   }) => {
     const now = Date.now();
-    const customerId = `c_${now}`;
+    const rand = Math.random().toString(36).slice(2, 6);
+    const customerId = `c_${now}_${rand}`;
+    const initialDebtAmount = Math.max(0, Number(c.initialDebt) || 0);
 
     // Check if customer already exists by phone
-    const existing = storeData.customers.find((cust) => cust.phone && cust.phone === c.phone);
+    const existing = storeData.customers.find((cust) => cust.phone && c.phone && cust.phone === c.phone);
     if (existing) {
       alert(`এই নম্বরে (${c.phone}) ইতোমধ্যে ${existing.name} নামে কাস্টমার রয়েছে।`);
       return;
@@ -186,17 +188,36 @@ export default function App() {
       name: c.name,
       phone: c.phone,
       address: c.address,
-      currentDebt: c.initialDebt || 0,
-      totalPurchased: c.initialDebt || 0,
+      currentDebt: initialDebtAmount,
+      totalPurchased: 0,
       totalPaid: 0,
       createdAt: now,
       lastActive: now,
     };
 
-    setStoreData({
-      ...storeData,
-      customers: [newCust, ...storeData.customers],
-    });
+    const openingTx: Transaction | null =
+      initialDebtAmount > 0
+        ? {
+            id: `tx_init_${now}_${rand}`,
+            customerId,
+            customerName: c.name,
+            customerPhone: c.phone || '',
+            type: 'sale',
+            totalAmount: 0,
+            paidAmount: 0,
+            dueAmount: initialDebtAmount,
+            note: 'আগের বাকি (পূর্বের হিসাব)',
+            paymentMethod: 'other',
+            date: new Date(now).toLocaleString('bn-BD'),
+            timestamp: now,
+          }
+        : null;
+
+    setStoreData((prev) => ({
+      ...prev,
+      customers: [newCust, ...prev.customers],
+      transactions: openingTx ? [openingTx, ...prev.transactions] : prev.transactions,
+    }));
   };
 
   const handleDeleteCustomer = (id: string) => {

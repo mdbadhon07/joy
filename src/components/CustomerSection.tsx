@@ -25,6 +25,7 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({
 }) => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [initialDebt, setInitialDebt] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'due' | 'clear'>('all');
 
@@ -32,6 +33,7 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({
     e.preventDefault();
     const trimmedName = name.trim();
     const trimmedPhone = phone.trim();
+    const parsedInitialDebt = Math.max(0, parseFloat(initialDebt) || 0);
     if (!trimmedName) {
       alert('কাস্টমারের নাম লিখুন।');
       return;
@@ -41,11 +43,12 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({
       name: trimmedName,
       phone: trimmedPhone,
       address: '',
-      initialDebt: 0,
+      initialDebt: parsedInitialDebt,
     });
 
     setName('');
     setPhone('');
+    setInitialDebt('');
   };
 
   const handlePickContact = async () => {
@@ -81,7 +84,7 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({
 
       {/* কাস্টমার যোগ ফর্ম */}
       <form onSubmit={handleSaveCustomer} className="space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <div>
             <label className="block text-[13px] text-[#607064] mb-1 font-medium">
               কাস্টমারের নাম
@@ -106,6 +109,25 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({
               placeholder="01XXXXXXXXX"
               className="w-full p-2.5 sm:p-3 border border-[#cbd8cd] rounded-[9px] text-[14px] bg-white text-[#17251a] focus:outline-none focus:border-[#14532d]"
             />
+          </div>
+          <div>
+            <label className="block text-[13px] text-[#607064] mb-1 font-medium">
+              আগের বাকি (যদি থাকে)
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#607064] text-[14px] font-bold">
+                ৳
+              </span>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={initialDebt}
+                onChange={(e) => setInitialDebt(e.target.value)}
+                placeholder="0"
+                className="w-full pl-7 pr-3 py-2.5 sm:py-3 border border-[#cbd8cd] rounded-[9px] text-[14px] font-mono-nums bg-white text-[#17251a] focus:outline-none focus:border-[#14532d]"
+              />
+            </div>
           </div>
         </div>
 
